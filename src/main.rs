@@ -1,12 +1,12 @@
 use std::boxed::Box;
-use std::error::Error;
 use std::cell::RefCell;
+use std::error::Error;
 use std::io::{self, Write};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use chrono::{DateTime, Utc};
 use curl::easy::{Easy, HttpVersion, List, ReadError};
 use curl_sys::{curl_easy_setopt, CURLoption};
-use chrono::{DateTime, Utc};
 use structopt::StructOpt;
 
 const CURLOPT_HTTP09_ALLOWED: CURLoption = 285;
@@ -14,7 +14,6 @@ const CURLOPT_HTTP09_ALLOWED: CURLoption = 285;
 #[derive(Debug, StructOpt)]
 #[structopt(name = "ntripping", about = "NTRIP command line client.")]
 struct Opt {
-
     #[structopt(long, default_value = "na.skylark.swiftnav.com:2101/CRS")]
     url: String,
 
@@ -47,13 +46,12 @@ fn checksum(buf: &[u8]) -> u8 {
 }
 
 fn main() -> Result<()> {
-
     let opt = Opt::from_args();
 
     let latf: f64 = opt.lat.parse::<f64>()?;
     let lonf: f64 = opt.lon.parse::<f64>()?;
     let heightf: f64 = opt.height.parse::<f64>()?;
-    
+
     let latn = ((latf * 1e8).round() / 1e8).abs();
     let lonn = ((lonf * 1e8).round() / 1e8).abs();
 
@@ -66,8 +64,7 @@ fn main() -> Result<()> {
     let lat_dir = if latf < 0.0 { 'S' } else { 'N' };
     let lon_dir = if lonf < 0.0 { 'W' } else { 'E' };
 
-    CURL.with(|curl| -> Result<()> { 
-
+    CURL.with(|curl| -> Result<()> {
         let mut curl = curl.borrow_mut();
 
         let mut headers = List::new();
@@ -88,9 +85,7 @@ fn main() -> Result<()> {
             curl.verbose(true)?;
         }
 
-        curl.write_function(|buf| {
-            Ok(io::stdout().write_all(buf).map_or(0, |_| buf.len()))
-        })?;
+        curl.write_function(|buf| Ok(io::stdout().write_all(buf).map_or(0, |_| buf.len())))?;
 
         curl.progress_function(|_dltot, _dlnow, _ultot, _ulnow| {
             let now = SystemTime::now();
@@ -116,7 +111,8 @@ fn main() -> Result<()> {
                 let time = datetime.format("%H%M%S.00");
                 let gpgga = format!(
                     "$GPGGA,{},{:02}{:010.7},{},{:03}{:010.7},{},4,12,1.3,{:.2},M,0.0,M,1.7,0078",
-                    time, lat_deg, lat_min, lat_dir, lon_deg, lon_min, lon_dir, heightf);
+                    time, lat_deg, lat_min, lat_dir, lon_deg, lon_min, lon_dir, heightf
+                );
                 let checksum = checksum(gpgga.as_bytes());
                 let gpgga = format!("{}*{:X}\r\n", gpgga, checksum);
                 buf.write_all(gpgga.as_bytes()).unwrap();
@@ -129,9 +125,7 @@ fn main() -> Result<()> {
         Ok(())
     })?;
 
-    CURL.with(|curl| -> Result<()> {
-        Ok(curl.borrow().perform()?)
-    })?;
+    CURL.with(|curl| -> Result<()> { Ok(curl.borrow().perform()?) })?;
 
     Ok(())
 }
