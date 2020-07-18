@@ -1,0 +1,11 @@
+[package]
+name = "ntripping"
+version = "0.1.0"
+authors = ["Swift Navigation <dev@swiftnav.com>"]
+edition = "2018"
+
+[dependencies]
+curl = "0.4"
+curl-sys = "0.4"
+structopt = "0.3"
+chrono = "0.4"
