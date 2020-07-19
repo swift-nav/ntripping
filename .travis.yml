@@ -21,21 +21,21 @@ script:
       cd target/release;
       7z a -tzip ../../ntripping_windows.zip ntripping.exe;
       cd ../..;
-      VERSION="$(git describe --always --tags --dirty)";
+      VERSION="$(git describe --always --tags)";
       mv ntripping_windows.zip "ntripping-${VERSION}-windows-x86_64.zip";
       ls -l;
     fi
 
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       tar -C "target/release" -czf ntripping_macos.tar.gz ntripping;
-      VERSION="$(git describe --always --tags --dirty)";
+      VERSION="$(git describe --always --tags)";
       mv ntripping_macos.tar.gz "ntripping-${VERSION}-macos-x86_64.tar.gz";
       ls -l;
     fi
 
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       tar -C "target/x86_64-unknown-linux-musl/release" -czf ntripping_linux.tar.gz ntripping;
-      VERSION="$(git describe --always --tags --dirty)";
+      VERSION="$(git describe --always --tags)";
       mv ntripping_linux.tar.gz "ntripping-${VERSION}-linux-x86_64.tar.gz";
       ls -l;
     fi
