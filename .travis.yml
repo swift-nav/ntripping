@@ -6,27 +6,17 @@ language: rust
 
 matrix:
   include:
-
     - os: linux
-
+    - os: windows
     - os: osx
       osx_image: xcode10
-
-    - os: windows
 
 cache:
   cargo: true
 
-# before_script:
-#   - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then rm "C:/Program Files/Git/usr/bin/sh.exe"; fi
-
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-docker run --rm -it -v "$PWD":/home/rust/src ekidd/rust-musl-builder:stable sh -c "cargo build --release";
-    fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]] || [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
-      cargo build --release;
-    fi
+  - ./.travis.sh
+
   - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
       cd target/release;
       7z a -tzip ../../ntripping_windows.zip ntripping.exe;
@@ -35,12 +25,14 @@ docker run --rm -it -v "$PWD":/home/rust/src ekidd/rust-musl-builder:stable sh -
       mv ntripping_windows.zip "ntripping-${VERSION}-windows-x86_64.zip";
       ls -l;
     fi
+
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       tar -C "target/release" -czf ntripping_macos.tar.gz ntripping;
       VERSION="$(git describe --always --tags --dirty)";
       mv ntripping_macos.tar.gz "ntripping-${VERSION}-macos-x86_64.tar.gz";
       ls -l;
     fi
+
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       tar -C "target/x86_64-unknown-linux-musl/release" -czf ntripping_linux.tar.gz ntripping;
       VERSION="$(git describe --always --tags --dirty)";
