@@ -1,3 +1,5 @@
+[![pings-rs][pings-rs-img]][ntripping]
+
 # [ntripping][ntripping]
 
 A debug utility for monitoring and inspecting NTRIP. This utility uses the same
@@ -43,3 +45,4 @@ Different resources can be requested from different locations. By default, a San
 Francisco latitude, longitude, and height will be used.
 
 [ntripping]: https://github.com/swift-nav/ntripping
+[pings-rs-img]: ./img/pings-rs.png
