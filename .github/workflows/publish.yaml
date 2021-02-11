@@ -1,0 +1,50 @@
+name: Publish
+on:
+  push:
+    tags:
+      - '*'
+jobs:
+  build:
+    name: Publish for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-18.04
+            binary_target: x86_64-unknown-linux-musl
+          - os: windows-2019
+            binary_target: x86_64-pc-windows-msvc
+          - os: macos-10.15
+            binary_target: x86_64-apple-darwin
+    steps:
+    - name: Install musl tools
+      if: matrix.os == 'ubuntu-18.04'
+      run: sudo apt-get install musl-tools
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Install rust for target ${{ matrix.binary_target }}
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable-${{ matrix.binary_target }}
+        profile: minimal
+    - uses: davidB/rust-cargo-make@v1
+    - name: Pull tags
+      run: git fetch --tags --prune --unshallow
+    - name: Fetch `git describe --tags`
+      id: git_describe
+      run: |
+        echo "::set-output name=result::$(git describe --tags)"
+    - name: Build Binary
+      run: "
+        cargo make zip-release-ci-flow
+          --env CARGO_MAKE_RELEASE_FLOW_TARGET=${{ matrix.binary_target }}
+          --env CARGO_MAKE_PROJECT_VERSION=${{ steps.git_describe.outputs.result }}"
+    - name: Upload Binaries
+      uses: svenstaro/upload-release-action@v1-release
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: '*.zip'
+        tag: ${{ github.ref }}
+        overwrite: true
+        file_glob: true

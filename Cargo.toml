@@ -9,3 +9,6 @@ curl = "0.4"
 curl-sys = "0.4"
 structopt = "0.3"
 chrono = "0.4"
+
+[build-dependencies]
+vergen = "3"
