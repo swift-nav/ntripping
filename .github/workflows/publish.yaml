@@ -30,7 +30,7 @@ jobs:
         profile: minimal
     - uses: davidB/rust-cargo-make@v1
     - name: Pull tags
-      run: git fetch --tags --prune --unshallow
+      run: git fetch --tags --prune --unshallow --force
     - name: Fetch `git describe --tags`
       id: git_describe
       run: |
