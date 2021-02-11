@@ -1,8 +1,9 @@
 [package]
 name = "ntripping"
-version = "1.0.3"
+version = "1.0.4-alpha.0"
 authors = ["Swift Navigation <dev@swiftnav.com>"]
 edition = "2018"
+publish = false
 
 [dependencies]
 curl = "0.4"
