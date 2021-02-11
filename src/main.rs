@@ -12,7 +12,7 @@ use structopt::StructOpt;
 const CURLOPT_HTTP09_ALLOWED: CURLoption = 285;
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "ntripping", about = "NTRIP command line client.")]
+#[structopt(name = "ntripping", about = "NTRIP command line client.", version = env!("VERGEN_SEMVER_LIGHTWEIGHT"))]
 struct Opt {
     #[structopt(long, default_value = "na.skylark.swiftnav.com:2101/CRS")]
     url: String,
