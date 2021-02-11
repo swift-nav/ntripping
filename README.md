@@ -1,3 +1,5 @@
+![CI](https://github.com/swift-nav/ntripping/workflows/CI/badge.svg)
+
 [![pings-rs][pings-rs-img]][ntripping]
 
 # [ntripping][ntripping]
