@@ -34,7 +34,7 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 thread_local! {
     static CURL: RefCell<Easy> = RefCell::new(Easy::new());
-    static LAST: RefCell<SystemTime> = RefCell::new(UNIX_EPOCH.clone());
+    static LAST: RefCell<SystemTime> = RefCell::new(UNIX_EPOCH);
 }
 
 fn checksum(buf: &[u8]) -> u8 {
@@ -91,7 +91,7 @@ fn main() -> Result<()> {
             let now = SystemTime::now();
             let elapsed = LAST.with(|last| {
                 let dur = now.duration_since(*last.borrow());
-                dur.unwrap_or(Duration::from_secs(0)).as_secs()
+                dur.unwrap_or_else(|_| Duration::from_secs(0)).as_secs()
             });
             if elapsed > 10 {
                 CURL.with(|curl| curl.borrow().unpause_read().unwrap());
@@ -103,10 +103,10 @@ fn main() -> Result<()> {
             let now = SystemTime::now();
             let elapsed = LAST.with(|last| {
                 let dur = now.duration_since(*last.borrow());
-                dur.unwrap_or(Duration::from_secs(0)).as_secs()
+                dur.unwrap_or_else(|_| Duration::from_secs(0)).as_secs()
             });
             if elapsed > 10 {
-                LAST.with(|last| *last.borrow_mut() = now.clone());
+                LAST.with(|last| *last.borrow_mut() = now);
                 let datetime: DateTime<Utc> = now.into();
                 let time = datetime.format("%H%M%S.00");
                 let gpgga = format!(
