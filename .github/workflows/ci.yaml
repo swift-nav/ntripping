@@ -61,5 +61,7 @@ jobs:
           toolchain: stable
           override: true
       - uses: davidB/rust-cargo-make@v1
+        with:
+          version: 0.32.12
       - name: Run CI
         run: cargo make ci-flow
