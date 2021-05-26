@@ -38,10 +38,11 @@ The `ntripping` utility has the following usage:
         -v, --verbose
 
     OPTIONS:
-            --height <height>     [default: -5.549358852471994]
-            --lat <lat>           [default: 37.77101999622968]
-            --lon <lon>           [default: -122.40315159140708]
-            --url <url>           [default: na.skylark.swiftnav.com:2101/CRS]
+            --client-id <client-id> [default: 00000000-0000-0000-0000-000000000000]
+            --height <height>       [default: -5.549358852471994]
+            --lat <lat>             [default: 37.77101999622968]
+            --lon <lon>             [default: -122.40315159140708]
+            --url <url>             [default: na.skylark.swiftnav.com:2101/CRS]
 
 Different resources can be requested from different locations. By default, a San
 Francisco latitude, longitude, and height will be used.

@@ -26,6 +26,9 @@ struct Opt {
     #[structopt(long, default_value = "-5.549358852471994")]
     height: String,
 
+    #[structopt(long, default_value = "00000000-0000-0000-0000-000000000000")]
+    client_id: String,
+
     #[structopt(short, long)]
     verbose: bool,
 }
@@ -68,8 +71,12 @@ fn main() -> Result<()> {
         let mut curl = curl.borrow_mut();
 
         let mut headers = List::new();
+        let mut client_id_header = "X-SwiftNav-Client-Id: ".to_string();
+        client_id_header.push_str(&opt.client_id);
+
         headers.append("Transfer-Encoding:")?;
         headers.append("Ntrip-Version: Ntrip/2.0")?;
+        headers.append(&client_id_header)?;
 
         curl.http_headers(headers)?;
         curl.useragent("NTRIP ntrip-client/1.0")?;
