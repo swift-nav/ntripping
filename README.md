@@ -48,8 +48,8 @@ Different resources can be requested from different locations. By default, a San
 Francisco latitude, longitude, and height will be used. The data returned is in RTCM format.
 
 The `--url` must be formatted as such: `{username}:{passsword}@{area}.skylark.swiftnav.com:{port}/{mountpoint}`, 
-where `username` and `password` refer to the user's [device registry](https://device-registry.cs.swiftnav.com/#/)
-username and password. 
+where `username` and `password` refer to the user's NTRIP username and password -- for Swift Skylark users
+this can be looked up from the Device Registry (internal to Swift).
 
 For example, if a user named John Doe has registed for a username of `john.doe` and password of `pa$$w0rd`
 at the [device registry](https://device-registry.cs.swiftnav.com/#/) and wants to query for OSR data at
