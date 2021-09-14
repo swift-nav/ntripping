@@ -45,12 +45,11 @@ The `ntripping` utility has the following usage:
             --url <url>             [default: na.skylark.swiftnav.com:2101/CRS]
 
 Different resources can be requested from different locations. By default, a San
-Francisco latitude, longitude, and height will be used. The data returns is in RTCM format.
+Francisco latitude, longitude, and height will be used. The data returned is in RTCM format.
 
 The `--url` must be formatted as such: `{username}:{passsword}@{area}.skylark.swiftnav.com:{port}/{mountpoint}`, 
 where `username` and `password` refer to the user's [device registry](https://device-registry.cs.swiftnav.com/#/)
-username and password. The full list of available endpoinds and mountpoints can be found 
-[here](https://swift-nav.atlassian.net/wiki/spaces/ENG/pages/399902820/Skylark+Endpoints+Mountpoints).
+username and password. 
 
 For example, if a user named John Doe has registed for a username of `john.doe` and password of `pa$$w0rd`
 at the [device registry](https://device-registry.cs.swiftnav.com/#/) and wants to query for OSR data at
