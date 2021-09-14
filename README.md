@@ -5,7 +5,8 @@
 # [ntripping][ntripping]
 
 A debug utility for monitoring and inspecting NTRIP. This utility uses the same
-libraries and mechanisms as the Piksi Multi.
+libraries and mechanisms as the Piksi Multi. Familiarity with the
+[NTRIP protocol](https://gssc.esa.int/wp-content/uploads/2018/07/NtripDocumentation.pdf) is assumed.
 
 ## Install a pre-built package
 
@@ -45,19 +46,16 @@ The `ntripping` utility has the following usage:
             --url <url>             [default: na.skylark.swiftnav.com:2101/CRS]
 
 Different resources can be requested from different locations. By default, a San
-Francisco latitude, longitude, and height will be used. The data returned is in RTCM format.
+Francisco latitude, longitude, and height will be used.
 
-The `--url` must be formatted as such: `{username}:{passsword}@{area}.skylark.swiftnav.com:{port}/{mountpoint}`, 
-where `username` and `password` refer to the user's NTRIP username and password -- for Swift Skylark users
-this can be looked up from the Device Registry (internal to Swift). Internal Swift Skylark users
-can also lookup the various Skylark endpoints and mountpoints in our documentation.
+The `--url` must be formatted as such: `{username}:{passsword}@{url}`, 
+where `username` and `password` refer to the user's NTRIP username and password.
 
 For example, if a user named John Doe has registered for a username of `john.doe` and password of `pa$$w0rd`
-and wants to query for OSR data at
-this location in North America: `(lat: 37.831235 deg, lon: -122.286484, height: -17.425m)`,
+and wants to query the GNSS data at this location in North America: `(lat: 37.831235 deg, lon: -122.286484, height: -17.425m)`,
 he will use the following command:
 ```
-ntripping -v --height -17.425 --lat 37.831235 --lon -122.286484 --url john.doe:pa$$w0rd@na.skylark.swiftnav.com:2101/OSR
+ntripping -v --height -17.425 --lat 37.831235 --lon -122.286484 --url john.doe:pa$$w0rd@na.skylark.swiftnav.com:2101/CRS
 ```
 
 ## Copyright
