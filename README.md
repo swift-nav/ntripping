@@ -51,8 +51,8 @@ The `--url` must be formatted as such: `{username}:{passsword}@{area}.skylark.sw
 where `username` and `password` refer to the user's NTRIP username and password -- for Swift Skylark users
 this can be looked up from the Device Registry (internal to Swift).
 
-For example, if a user named John Doe has registed for a username of `john.doe` and password of `pa$$w0rd`
-at the [device registry](https://device-registry.cs.swiftnav.com/#/) and wants to query for OSR data at
+For example, if a user named John Doe has registered for a username of `john.doe` and password of `pa$$w0rd`
+and wants to query for OSR data at
 this location in North America: `(lat: 37.831235 deg, lon: -122.286484, height: -17.425m)`,
 he will use the following command:
 ```
