@@ -142,7 +142,7 @@ dependencies = [
 
 [[package]]
 name = "ntripping"
-version = "1.0.7"
+version = "1.0.8-alpha.0"
 dependencies = [
  "chrono",
  "curl",
