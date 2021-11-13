@@ -1,4 +1,4 @@
-Archived in favor of https://github.com/swift-nav/pings
+# Archived in favor of https://github.com/swift-nav/pings
 
 ---
 
