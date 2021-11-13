@@ -2,6 +2,7 @@ use std::boxed::Box;
 use std::cell::RefCell;
 use std::error::Error;
 use std::io::{self, Write};
+use std::ops::Add;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use chrono::{DateTime, Utc};
@@ -27,10 +28,13 @@ struct Opt {
     height: String,
 
     #[structopt(long, default_value = "00000000-0000-0000-0000-000000000000")]
-    client_id: String,
+    client: String,
 
     #[structopt(short, long)]
     verbose: bool,
+
+    #[structopt(long)]
+    epoch: Option<u32>,
 }
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -71,12 +75,12 @@ fn main() -> Result<()> {
         let mut curl = curl.borrow_mut();
 
         let mut headers = List::new();
-        let mut client_id_header = "X-SwiftNav-Client-Id: ".to_string();
-        client_id_header.push_str(&opt.client_id);
+        let mut client_header = "X-SwiftNav-Client-Id: ".to_string();
+        client_header.push_str(&opt.client);
 
         headers.append("Transfer-Encoding:")?;
         headers.append("Ntrip-Version: Ntrip/2.0")?;
-        headers.append(&client_id_header)?;
+        headers.append(&client_header)?;
 
         curl.http_headers(headers)?;
         curl.useragent("NTRIP ntrip-client/1.0")?;
@@ -107,7 +111,11 @@ fn main() -> Result<()> {
         })?;
 
         curl.read_function(move |mut buf: &mut [u8]| {
-            let now = SystemTime::now();
+            let now = if let Some(epoch) = opt.epoch {
+                SystemTime::UNIX_EPOCH.add(Duration::from_secs(epoch.into()))
+            } else {
+                SystemTime::now()
+            };
             let elapsed = LAST.with(|last| {
                 let dur = now.duration_since(*last.borrow());
                 dur.unwrap_or_else(|_| Duration::from_secs(0)).as_secs()
