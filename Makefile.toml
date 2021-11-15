@@ -22,7 +22,7 @@ cp target/${CARGO_MAKE_RELEASE_FLOW_TARGET}/release/${CARGO_MAKE_BINARY_EXECUTAB
 echo "Copying README..."
 cp README.md ${OUTPUT_NAME}/README.md
 echo "Copying LICENSE..."
-glob_cp LICENSE* ${OUTPUT_NAME}/
+cp LICENSE ${OUTPUT_NAME}/LICENSE
 echo "Creating archive..."
 exec --fail-on-error zip -r ${OUTPUT_NAME}.zip ${OUTPUT_NAME}
 '''
