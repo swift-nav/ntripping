@@ -26,8 +26,8 @@ cp LICENSE ${OUTPUT_NAME}/LICENSE
 echo "Creating archive..."
 os = os_family
 if eq ${os} windows
-  exec --fail-on-error zip -r ${OUTPUT_NAME}.zip ${OUTPUT_NAME}
-else
   exec --fail-on-error 7z a ${OUTPUT_NAME}.zip ${OUTPUT_NAME} -r
+else
+  exec --fail-on-error zip -r ${OUTPUT_NAME}.zip ${OUTPUT_NAME}
 end
 '''
