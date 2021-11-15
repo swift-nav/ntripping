@@ -24,5 +24,10 @@ cp README.md ${OUTPUT_NAME}/README.md
 echo "Copying LICENSE..."
 cp LICENSE ${OUTPUT_NAME}/LICENSE
 echo "Creating archive..."
-exec --fail-on-error zip -r ${OUTPUT_NAME}.zip ${OUTPUT_NAME}
+os = os_family
+if eq ${os} windows
+  exec --fail-on-error zip -r ${OUTPUT_NAME}.zip ${OUTPUT_NAME}
+else
+  exec --fail-on-error 7z a ${OUTPUT_NAME}.zip ${OUTPUT_NAME} -r
+end
 '''
