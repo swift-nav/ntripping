@@ -6,34 +6,38 @@ use std::ops::Add;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use chrono::{DateTime, Utc};
+use clap::Parser;
 use curl::easy::{Easy, HttpVersion, List, ReadError};
 use curl_sys::{curl_easy_setopt, CURLoption};
-use structopt::StructOpt;
 
 const CURLOPT_HTTP09_ALLOWED: CURLoption = 285;
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "ntripping", about = "NTRIP command line client.", version = env!("VERGEN_SEMVER_LIGHTWEIGHT"))]
-struct Opt {
-    #[structopt(long, default_value = "na.skylark.swiftnav.com:2101/CRS")]
+#[derive(Debug, Parser)]
+#[clap(name = "ntripping", about = "NTRIP command line client.", version = env!("VERGEN_SEMVER_LIGHTWEIGHT"))]
+struct Cli {
+    #[clap(long, default_value = "na.skylark.swiftnav.com:2101/CRS")]
     url: String,
 
-    #[structopt(long, default_value = "37.77101999622968")]
+    #[clap(long, default_value = "37.77101999622968", allow_hyphen_values = true)]
     lat: String,
 
-    #[structopt(long, default_value = "-122.40315159140708")]
+    #[clap(
+        long,
+        default_value = "-122.40315159140708",
+        allow_hyphen_values = true
+    )]
     lon: String,
 
-    #[structopt(long, default_value = "-5.549358852471994")]
+    #[clap(long, default_value = "-5.549358852471994", allow_hyphen_values = true)]
     height: String,
 
-    #[structopt(long, default_value = "00000000-0000-0000-0000-000000000000")]
+    #[clap(long, default_value = "00000000-0000-0000-0000-000000000000")]
     client: String,
 
-    #[structopt(short, long)]
+    #[clap(short, long)]
     verbose: bool,
 
-    #[structopt(long)]
+    #[clap(long)]
     epoch: Option<u32>,
 }
 
@@ -53,7 +57,7 @@ fn checksum(buf: &[u8]) -> u8 {
 }
 
 fn main() -> Result<()> {
-    let opt = Opt::from_args();
+    let opt = Cli::parse();
 
     let latf: f64 = opt.lat.parse::<f64>()?;
     let lonf: f64 = opt.lon.parse::<f64>()?;
