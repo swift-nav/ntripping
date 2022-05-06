@@ -6,7 +6,7 @@ edition = "2018"
 publish = false
 
 [dependencies]
-curl = { git="https://github.com/alexcrichton/curl-rust.git", branch = "main" }
+curl = { git = "https://github.com/alexcrichton/curl-rust.git", rev = "16133f713af1e5493a5141b87edb939343d7ee73" }
 clap = { version = "3", features = ["derive"] }
 chrono = "0.4"
 
