@@ -6,9 +6,9 @@ use std::ops::Add;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use chrono::{DateTime, Utc};
+use clap::Parser;
 use curl::easy::{Easy, HttpVersion, List, ReadError};
 use curl_sys::{curl_easy_setopt, CURLoption};
-use clap::Parser;
 
 const CURLOPT_HTTP09_ALLOWED: CURLoption = 285;
 
@@ -21,7 +21,11 @@ struct Cli {
     #[clap(long, default_value = "37.77101999622968", allow_hyphen_values = true)]
     lat: String,
 
-    #[clap(long, default_value = "-122.40315159140708", allow_hyphen_values = true)]
+    #[clap(
+        long,
+        default_value = "-122.40315159140708",
+        allow_hyphen_values = true
+    )]
     lon: String,
 
     #[clap(long, default_value = "-5.549358852471994", allow_hyphen_values = true)]
