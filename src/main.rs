@@ -8,9 +8,6 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use chrono::{DateTime, Utc};
 use clap::Parser;
 use curl::easy::{Easy, HttpVersion, List, ReadError};
-use curl_sys::{curl_easy_setopt, CURLoption};
-
-const CURLOPT_HTTP09_ALLOWED: CURLoption = 285;
 
 #[derive(Debug, Parser)]
 #[clap(name = "ntripping", about = "NTRIP command line client.", version = env!("VERGEN_SEMVER_LIGHTWEIGHT"))]
@@ -93,8 +90,7 @@ fn main() -> Result<()> {
         curl.put(true)?;
         curl.custom_request("GET")?;
         curl.http_version(HttpVersion::Any)?;
-
-        unsafe { curl_easy_setopt(curl.raw(), CURLOPT_HTTP09_ALLOWED, 1) };
+        curl.http_09_allowed(true)?;
 
         if opt.verbose {
             curl.verbose(true)?;
