@@ -46,9 +46,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "3.1.16"
+version = "3.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f52d4f8e4a1419219935762e32913b4430f37cb0c0200ad17a89ee18c0188a9f"
+checksum = "d2dbdf4bdacb33466e854ce889eee8dfd5729abf7ccd7664d0a2d60cd384440b"
 dependencies = [
  "atty",
  "bitflags",
@@ -63,9 +63,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "3.1.7"
+version = "3.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3aab4734e083b809aaf5794e14e756d1c798d2c69c7f7de7a09a2f5214993c1"
+checksum = "25320346e922cffe59c0bbc5410c8d8784509efb321488971081313cb1e1a33c"
 dependencies = [
  "heck",
  "proc-macro-error",
@@ -86,7 +86,7 @@ dependencies = [
 [[package]]
 name = "curl"
 version = "0.4.43"
-source = "git+https://github.com/alexcrichton/curl-rust.git?branch=main#16133f713af1e5493a5141b87edb939343d7ee73"
+source = "git+https://github.com/alexcrichton/curl-rust.git?rev=16133f713af1e5493a5141b87edb939343d7ee73#16133f713af1e5493a5141b87edb939343d7ee73"
 dependencies = [
  "curl-sys",
  "libc",
@@ -100,7 +100,7 @@ dependencies = [
 [[package]]
 name = "curl-sys"
 version = "0.4.54+curl-7.83.0"
-source = "git+https://github.com/alexcrichton/curl-rust.git?branch=main#16133f713af1e5493a5141b87edb939343d7ee73"
+source = "git+https://github.com/alexcrichton/curl-rust.git?rev=16133f713af1e5493a5141b87edb939343d7ee73#16133f713af1e5493a5141b87edb939343d7ee73"
 dependencies = [
  "cc",
  "libc",
