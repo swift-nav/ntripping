@@ -1,11 +1,12 @@
 ![CI](https://github.com/swift-nav/ntripping/workflows/CI/badge.svg)
 
-[![pings-rs][pings-rs-img]][ntripping]
-
 # [ntripping][ntripping]
 
 A debug utility for monitoring and inspecting NTRIP. This utility uses the same
-libraries and mechanisms as the Piksi Multi.
+libraries and mechanisms as the Piksi Multi.  Alternate version of [pings](https://github.com/swift-nav/pings)
+which provides pre-built binaries.
+
+[![pings-rs][pings-rs-img]][ntripping]
 
 ## Install a pre-built package
 
