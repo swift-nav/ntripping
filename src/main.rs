@@ -36,6 +36,14 @@ struct Cli {
 
     #[clap(long)]
     epoch: Option<u32>,
+
+    /// Username credentials
+    #[clap(long)]
+    username: Option<String>,
+
+    /// Password credentials
+    #[clap(long)]
+    password: Option<String>,
 }
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -94,6 +102,14 @@ fn main() -> Result<()> {
 
         if opt.verbose {
             curl.verbose(true)?;
+        }
+
+        if let Some(username) = &opt.username {
+            curl.username(username)?;
+        }
+
+        if let Some(password) = &opt.password {
+            curl.password(password)?;
         }
 
         curl.write_function(|buf| Ok(io::stdout().write_all(buf).map_or(0, |_| buf.len())))?;

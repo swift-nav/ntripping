@@ -47,6 +47,15 @@ The `ntripping` utility has the following usage:
 Different resources can be requested from different locations. By default, a San
 Francisco latitude, longitude, and height will be used.
 
+### Credentials
+
+Access credentials are usually required to access NTRIP streams. These credentials can be
+specified individually as command line arguments or directly in the URL like this
+
+```
+ntripping --url user:pass@na.skylark.swiftnav.com:2101/CRS
+```
+
 ## Copyright
 
 ```
