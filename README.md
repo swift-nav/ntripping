@@ -29,20 +29,22 @@ The `ntripping` utility has the following usage:
     NTRIP command line client.
 
     USAGE:
-        ntripping [FLAGS] [OPTIONS]
-
-    FLAGS:
-        -h, --help       Prints help information
-        -V, --version    Prints version information
-        -v, --verbose
+        ntripping [OPTIONS]
 
     OPTIONS:
-            --client-id <client-id>     [default: 00000000-0000-0000-0000-000000000000]
-            --epoch <epoch>
-            --height <height>           [default: -5.549358852471994]
-            --lat <lat>                 [default: 37.77101999622968]
-            --lon <lon>                 [default: -122.40315159140708]
-            --url <url>                 [default: na.skylark.swiftnav.com:2101/CRS]
+            --client <CLIENT>        Client ID [default: 00000000-0000-0000-0000-000000000000]
+            --epoch <EPOCH>          Receiver time to report, as a Unix time
+        -h, --help                   Print help information
+            --height <HEIGHT>        Receiver height to report, in meters [default: -5.549358852471994]
+            --lat <LAT>              Receiver latitude to report, in degrees [default:
+                                     37.77101999622968]
+            --lon <LON>              Receiver longitude to report, in degrees [default:
+                                     -122.40315159140708]
+            --password <PASSWORD>    Password credentials
+            --url <URL>              URL of the NTRIP caster [default: na.skylark.swiftnav.com:2101/CRS]
+            --username <USERNAME>    Username credentials
+        -v, --verbose
+        -V, --version                Print version information
 
 Different resources can be requested from different locations. By default, a San
 Francisco latitude, longitude, and height will be used.
