@@ -12,12 +12,15 @@ use curl::easy::{Easy, HttpVersion, List, ReadError};
 #[derive(Debug, Parser)]
 #[clap(name = "ntripping", about = "NTRIP command line client.", version = env!("VERGEN_SEMVER_LIGHTWEIGHT"))]
 struct Cli {
+    /// URL of the NTRIP caster
     #[clap(long, default_value = "na.skylark.swiftnav.com:2101/CRS")]
     url: String,
 
+    /// Receiver latitude to report, in degrees
     #[clap(long, default_value = "37.77101999622968", allow_hyphen_values = true)]
     lat: String,
 
+    /// Receiver longitude to report, in degrees
     #[clap(
         long,
         default_value = "-122.40315159140708",
@@ -25,15 +28,18 @@ struct Cli {
     )]
     lon: String,
 
+    /// Receiver height to report, in meters
     #[clap(long, default_value = "-5.549358852471994", allow_hyphen_values = true)]
     height: String,
 
+    /// Client ID
     #[clap(long, default_value = "00000000-0000-0000-0000-000000000000")]
     client: String,
 
     #[clap(short, long)]
     verbose: bool,
 
+    /// Receiver time to report, as a Unix time
     #[clap(long)]
     epoch: Option<u32>,
 
