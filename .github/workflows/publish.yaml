@@ -56,6 +56,8 @@ jobs:
     runs-on: ubuntu-18.04
     needs: [ build ]
     steps:
+      - name: Pull tags
+        run: git fetch --tags --prune --unshallow --force
       - name: Fetch `git describe --tags`
         id: git_describe
         run: |
