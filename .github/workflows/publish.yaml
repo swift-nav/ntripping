@@ -17,8 +17,6 @@ jobs:
             binary_target: x86_64-pc-windows-msvc
           - os: macos-11
             binary_target: x86_64-apple-darwin
-    outputs:
-      version: ${{ steps.git_describe.outputs.result }}
     steps:
     - name: Install musl tools
       if: matrix.os == 'ubuntu-18.04'
@@ -57,12 +55,16 @@ jobs:
     runs-on: ubuntu-18.04
     needs: [ build ]
     steps:
+      - name: Fetch `git describe --tags`
+        id: git_describe
+        run: |
+          echo "::set-output name=result::$(git describe --tags)"
       - name: Hook into package registry
         uses: swift-nav/swift-cli-publisher@v2
         env:
-          DL_LINUX: "ntripping-${{ needs.build.outputs.version }}-x86_64-unknown-linux-musl.zip"
-          DL_MAC: "ntripping-${{ needs.build.outputs.version }}-x86_64-apple-darwin.zip"
-          DL_WIN: "ntripping-${{ needs.build.outputs.version }}-x86_64-pc-windows-msvc.zip"
+          DL_LINUX: "ntripping-${{ steps.git_describe.outputs.result }}-x86_64-unknown-linux-musl.zip"
+          DL_MAC: "ntripping-${{ steps.git_describe.outputs.result }}-x86_64-apple-darwin.zip"
+          DL_WIN: "ntripping-${{ steps.git_describe.outputs.result }}-x86_64-pc-windows-msvc.zip"
           TOOLS: "ntripping"
         with:
           token: ${{ secrets.GH_TOKEN }}
