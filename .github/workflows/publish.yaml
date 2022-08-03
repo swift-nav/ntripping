@@ -36,6 +36,7 @@ jobs:
       run: |
         echo "::set-output name=result::$(git describe --tags)"
     - name: Build Binary
+      shell: bash
       run: |
         cargo make \
           --env CARGO_MAKE_RELEASE_FLOW_TARGET=${{ matrix.binary_target }} \
