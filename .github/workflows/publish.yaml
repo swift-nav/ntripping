@@ -15,8 +15,10 @@ jobs:
             binary_target: x86_64-unknown-linux-musl
           - os: windows-2019
             binary_target: x86_64-pc-windows-msvc
-          - os: macos-10.15
+          - os: macos-11
             binary_target: x86_64-apple-darwin
+    outputs:
+      version: ${{ steps.git_describe.outputs.result }}
     steps:
     - name: Install musl tools
       if: matrix.os == 'ubuntu-18.04'
@@ -36,7 +38,7 @@ jobs:
       run: |
         echo "::set-output name=result::$(git describe --tags)"
     - name: Build Binary
-      run: "
+      run: |
         cargo make
           --env CARGO_MAKE_RELEASE_FLOW_TARGET=${{ matrix.binary_target }}
           --env CARGO_MAKE_PROJECT_VERSION=${{ steps.git_describe.outputs.result }}
@@ -49,3 +51,20 @@ jobs:
         tag: ${{ github.ref }}
         overwrite: true
         file_glob: true
+  
+  post-build:
+    name: Post Build
+    runs-on: ubuntu-18.04
+    needs: [ build ]
+    steps:
+      - name: Hook into package registry
+        uses: swift-nav/swift-cli-publisher@v2
+        env:
+          DL_LINUX: "ntripping-${{ needs.build.outputs.version }}-x86_64-unknown-linux-musl.zip"
+          DL_MAC: "ntripping-${{ needs.build.outputs.version }}-x86_64-apple-darwin.zip"
+          DL_WIN: "ntripping-${{ needs.build.outputs.version }}-x86_64-pc-windows-msvc.zip"
+          TOOLS: "ntripping"
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          gh-name: ${{ secrets.GH_NAME }}
+          gh-email: ${{ secrets.GH_EMAIL }}
