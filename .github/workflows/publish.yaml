@@ -15,7 +15,7 @@ jobs:
             binary_target: x86_64-unknown-linux-musl
           - os: windows-2019
             binary_target: x86_64-pc-windows-msvc
-          - os: macos-10.15
+          - os: macos-11
             binary_target: x86_64-apple-darwin
     steps:
     - name: Install musl tools
@@ -29,18 +29,17 @@ jobs:
         toolchain: stable-${{ matrix.binary_target }}
         profile: minimal
     - uses: davidB/rust-cargo-make@v1
-    - name: Pull tags
-      run: git fetch --tags --prune --unshallow --force
-    - name: Fetch `git describe --tags`
-      id: git_describe
-      run: |
-        echo "::set-output name=result::$(git describe --tags)"
+    - name: Get tag
+      id: get_tag
+      shell: bash
+      run: echo ::set-output name=tag::${GITHUB_REF##refs/tags/}
     - name: Build Binary
-      run: "
-        cargo make
-          --env CARGO_MAKE_RELEASE_FLOW_TARGET=${{ matrix.binary_target }}
-          --env CARGO_MAKE_PROJECT_VERSION=${{ steps.git_describe.outputs.result }}
-          zip-release-ci-flow"
+      shell: bash
+      run: |
+        cargo make \
+          --env CARGO_MAKE_RELEASE_FLOW_TARGET=${{ matrix.binary_target }} \
+          --env CARGO_MAKE_PROJECT_VERSION=${{ steps.get_tag.outputs.tag }} \
+          zip-release-ci-flow
     - name: Upload Binaries
       uses: svenstaro/upload-release-action@v1-release
       with:
@@ -49,3 +48,24 @@ jobs:
         tag: ${{ github.ref }}
         overwrite: true
         file_glob: true
+  
+  post-build:
+    name: Post Build
+    runs-on: ubuntu-18.04
+    needs: [ build ]
+    steps:
+      - name: Get tag
+        id: get_tag
+        shell: bash
+        run: echo ::set-output name=tag::${GITHUB_REF##refs/tags/}
+      - name: Hook into package registry
+        uses: swift-nav/swift-cli-publisher@v2
+        env:
+          DL_LINUX: "ntripping-${{ steps.get_tag.outputs.tag }}-x86_64-unknown-linux-musl.zip"
+          DL_MAC: "ntripping-${{ steps.get_tag.outputs.tag }}-x86_64-apple-darwin.zip"
+          DL_WIN: "ntripping-${{ steps.get_tag.outputs.tag }}-x86_64-pc-windows-msvc.zip"
+          TOOLS: "ntripping"
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          gh-name: ${{ secrets.GH_NAME }}
+          gh-email: ${{ secrets.GH_EMAIL }}
