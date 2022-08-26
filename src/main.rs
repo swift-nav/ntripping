@@ -3,6 +3,7 @@ use std::cell::RefCell;
 use std::error::Error;
 use std::io::{self, Write};
 use std::ops::Add;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use chrono::{DateTime, Utc};
@@ -54,11 +55,6 @@ struct Cli {
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
-thread_local! {
-    static CURL: RefCell<Easy> = RefCell::new(Easy::new());
-    static LAST: RefCell<SystemTime> = RefCell::new(UNIX_EPOCH);
-}
-
 fn checksum(buf: &[u8]) -> u8 {
     let mut sum: u8 = 0;
     for c in &buf[1..] {
@@ -86,64 +82,75 @@ fn main() -> Result<()> {
     let lat_dir = if latf < 0.0 { 'S' } else { 'N' };
     let lon_dir = if lonf < 0.0 { 'W' } else { 'E' };
 
-    CURL.with(|curl| -> Result<()> {
-        let mut curl = curl.borrow_mut();
+    let mut curl = Easy::new();
+    let last_time_ref = Arc::new(RefCell::new(UNIX_EPOCH));
 
-        let mut headers = List::new();
-        let mut client_header = "X-SwiftNav-Client-Id: ".to_string();
-        client_header.push_str(&opt.client);
+    let mut headers = List::new();
+    let mut client_header = "X-SwiftNav-Client-Id: ".to_string();
+    client_header.push_str(&opt.client);
 
-        headers.append("Transfer-Encoding:")?;
-        headers.append("Ntrip-Version: Ntrip/2.0")?;
-        headers.append(&client_header)?;
+    headers.append("Transfer-Encoding:")?;
+    headers.append("Ntrip-Version: Ntrip/2.0")?;
+    headers.append(&client_header)?;
 
-        curl.http_headers(headers)?;
-        curl.useragent("NTRIP ntrip-client/1.0")?;
-        curl.url(&opt.url)?;
-        curl.progress(true)?;
-        curl.put(true)?;
-        curl.custom_request("GET")?;
-        curl.http_version(HttpVersion::Any)?;
-        curl.http_09_allowed(true)?;
+    curl.http_headers(headers)?;
+    curl.useragent("NTRIP ntrip-client/1.0")?;
+    curl.url(&opt.url)?;
+    curl.progress(true)?;
+    curl.put(true)?;
+    curl.custom_request("GET")?;
+    curl.http_version(HttpVersion::Any)?;
+    curl.http_09_allowed(true)?;
 
-        if opt.verbose {
-            curl.verbose(true)?;
-        }
+    if opt.verbose {
+        curl.verbose(true)?;
+    }
 
-        if let Some(username) = &opt.username {
-            curl.username(username)?;
-        }
+    if let Some(username) = &opt.username {
+        curl.username(username)?;
+    }
 
-        if let Some(password) = &opt.password {
-            curl.password(password)?;
-        }
+    if let Some(password) = &opt.password {
+        curl.password(password)?;
+    }
 
-        curl.write_function(|buf| Ok(io::stdout().write_all(buf).map_or(0, |_| buf.len())))?;
+    curl.write_function(|buf| Ok(io::stdout().write_all(buf).map_or(0, |_| buf.len())))?;
 
-        curl.progress_function(|_dltot, _dlnow, _ultot, _ulnow| {
-            let now = SystemTime::now();
-            let elapsed = LAST.with(|last| {
-                let dur = now.duration_since(*last.borrow());
-                dur.unwrap_or_else(|_| Duration::from_secs(0)).as_secs()
-            });
-            if elapsed > 10 {
-                CURL.with(|curl| curl.borrow().unpause_read().unwrap());
+    {
+        let mut curl= curl.transfer();
+
+        progress_transfer.progress_function({
+            let last_time_ref = last_time_ref.clone();
+            move |_dltot, _dlnow, _ultot, _ulnow| {
+                let now = SystemTime::now();
+                let elapsed = {
+                    let dur = now.duration_since(*last_time_ref.borrow());
+                    dur.unwrap_or_else(|_| Duration::from_secs(0)).as_secs()
+                };
+                if elapsed > 10 {
+                    curl_ref.unpause_read().unwrap();
+                }
+                true
             }
-            true
         })?;
+    }
 
-        curl.read_function(move |mut buf: &mut [u8]| {
+    let read_transfer = curl.transfer();
+
+    read_transfer.read_function({
+        let last_time_ref = last_time_ref.clone();
+        move |mut buf: &mut [u8]| {
             let now = if let Some(epoch) = opt.epoch {
                 SystemTime::UNIX_EPOCH.add(Duration::from_secs(epoch.into()))
             } else {
                 SystemTime::now()
             };
-            let elapsed = LAST.with(|last| {
-                let dur = now.duration_since(*last.borrow());
+            let elapsed = {
+                let dur = now.duration_since(*last_time_ref.borrow());
                 dur.unwrap_or_else(|_| Duration::from_secs(0)).as_secs()
-            });
+            };
             if elapsed > 10 {
-                LAST.with(|last| *last.borrow_mut() = now);
+                *last_time_ref.borrow_mut() = now;
                 let datetime: DateTime<Utc> = now.into();
                 let time = datetime.format("%H%M%S.00");
                 let gpgga = format!(
@@ -157,12 +164,10 @@ fn main() -> Result<()> {
             } else {
                 Err(ReadError::Pause)
             }
-        })?;
-
-        Ok(())
+        }
     })?;
 
-    CURL.with(|curl| -> Result<()> { Ok(curl.borrow().perform()?) })?;
+    curl.perform()?;
 
     Ok(())
 }
