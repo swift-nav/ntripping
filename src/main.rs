@@ -50,6 +50,10 @@ struct Cli {
     /// Password credentials
     #[clap(long)]
     password: Option<String>,
+
+    /// GGA update period, in seconds. 0 means to never send a GGA
+    #[clap(long, default_value = "10")]
+    gga_period: u64,
 }
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -142,7 +146,7 @@ fn main() -> Result<()> {
                 let dur = now.duration_since(*last.borrow());
                 dur.unwrap_or_else(|_| Duration::from_secs(0)).as_secs()
             });
-            if elapsed > 10 {
+            if opt.gga_period > 0 && elapsed > opt.gga_period {
                 LAST.with(|last| *last.borrow_mut() = now);
                 let datetime: DateTime<Utc> = now.into();
                 let time = datetime.format("%H%M%S.00");
