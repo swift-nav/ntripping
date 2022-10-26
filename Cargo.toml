@@ -3,7 +3,7 @@ name = "ntripping"
 version = "1.3.0"
 authors = ["Swift Navigation <dev@swiftnav.com>"]
 edition = "2018"
-publish = false
+publish = true
 
 [dependencies]
 curl = "^0.4.44"
