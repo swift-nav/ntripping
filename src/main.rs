@@ -162,7 +162,6 @@ fn main() -> Result<()> {
                 LAST.with(|last| *last.borrow_mut() = now);
                 let datetime: DateTime<Utc> = now.into();
                 let time = datetime.format("%H%M%S.00");
-                
                 let message = match &opt.areaid {
                     Some(areaid) => {
                         let request_counter = match &opt.request_counter {
