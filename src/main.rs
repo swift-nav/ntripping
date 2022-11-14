@@ -62,6 +62,10 @@ struct Cli {
     /// SolutionID, the identifier of the connection stream to reconnect to in the event of disconnections
     #[clap(long)]
     sid: Option<u8>,
+
+    /// Request counter allows correlation between message sent and acknowledgment response from corrections stream
+    #[clap(long)]
+    request_counter: Option<u8>,
 }
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -161,27 +165,22 @@ fn main() -> Result<()> {
                 
                 let message = match &opt.areaid {
                     Some(areaid) => {
-                        // "For all other situations, the CorrectionsMask should either be omitted or set to zero whenever a CRA AreadID update is sent. In this way all corrections are sent on Skylarks regular update cycle." https://docs.google.com/document/d/10L8i-CAY3_q3UxZAIy8IQhcc-6tDeN5a/
-                        let correction_mask: u16 = 0b0;
+                        let request_counter = match &opt.request_counter {
+                            Some(rc) => rc.to_string(),
+                            None => String::new()
+                        };
                         let solution_id = match &opt.sid {
                             Some(sid) => sid.to_string(),
                             None => String::new()
                         };
-                        // add note to PR: trailing comma is deliberate. this field is marked "reserved"
-                        // Add note to PR: unresolved discussion related to inclusion of request_count. @jason I am working to ?
-                        format!("$PSWTCRA,{},{},{},", areaid, correction_mask, solution_id)
+                        format!("$PSWTCRA,{},{},,{},", request_counter, areaid, solution_id)
                     },
                     None => {
-                        // Add note to PR: shouldn't GGA sentences be terminated by a carriage return 
-                        // (https://docs.google.com/document/d/10L8i-CAY3_q3UxZAIy8IQhcc-6tDeN5a/edit# under "reporting position")
-                        // or more formally: 
-                        // http://www.nuovamarea.net/blog/general-sentence-format-of-nmea-0183
                         format!("$GPGGA,{},{:02}{:010.7},{},{:03}{:010.7},{},4,12,1.3,{:.2},M,0.0,M,1.7,0078",
                         time, lat_deg, lat_min, lat_dir, lon_deg, lon_min, lon_dir, heightf)
                     }
                 };
                 let checksum = checksum(message.as_bytes());
-                // Add note to PR: Add '\r\n' to var 'message'? maybe write_all write_all doees not handle that...
                 let message = format!("{}*{:X}\r\n", message, checksum);
                 buf.write_all(message.as_bytes()).unwrap();
                 Ok(buf.len())
