@@ -33,7 +33,11 @@ struct Cli {
     height: String,
 
     /// Client ID
-    #[clap(long, default_value = "00000000-0000-0000-0000-000000000000")]
+    #[clap(
+        long,
+        default_value = "00000000-0000-0000-0000-000000000000",
+        alias = "client"
+    )]
     client_id: String,
 
     #[clap(short, long)]
@@ -180,7 +184,7 @@ fn main() -> Result<()> {
                     }
                 };
                 let checksum = checksum(message.as_bytes());
-                let message = format!("{}*{:X}\r\n", message, checksum);
+                let message = format!("{}*{:X}", message, checksum);
                 buf.write_all(message.as_bytes()).unwrap();
                 Ok(buf.len())
             } else {
