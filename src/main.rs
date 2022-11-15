@@ -110,6 +110,8 @@ fn main() -> Result<()> {
     let lat_dir = if latf < 0.0 { 'S' } else { 'N' };
     let lon_dir = if lonf < 0.0 { 'W' } else { 'E' };
 
+    let mut request_counter = opt.request_counter.unwrap_or(0);
+
     CURL.with(|curl| -> Result<()> {
         let mut curl = curl.borrow_mut();
 
@@ -172,10 +174,6 @@ fn main() -> Result<()> {
                 let time = datetime.format("%H%M%S.00");
                 let message = match &opt.area_id {
                     Some(area_id) => {
-                        let request_counter = match &opt.request_counter {
-                            Some(rc) => rc.to_string(),
-                            None => String::new()
-                        };
                         let solution_id = match &opt.solution_id {
                             Some(solution_id) => solution_id.to_string(),
                             None => String::new()
@@ -189,6 +187,7 @@ fn main() -> Result<()> {
                         time, lat_deg, lat_min, lat_dir, lon_deg, lon_min, lon_dir, heightf)
                     }
                 };
+                request_counter = request_counter + 1;
                 let checksum = checksum(message.as_bytes());
                 let message = format!("{}*{:X}\r\n", message, checksum);
                 buf.write_all(message.as_bytes()).unwrap();
