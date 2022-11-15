@@ -184,7 +184,7 @@ fn main() -> Result<()> {
                     }
                 };
                 let checksum = checksum(message.as_bytes());
-                let message = format!("{}*{:X}", message, checksum);
+                let message = format!("{}*{:X}\r\n", message, checksum);
                 buf.write_all(message.as_bytes()).unwrap();
                 Ok(buf.len())
             } else {
