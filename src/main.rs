@@ -179,7 +179,6 @@ fn main() -> Result<()> {
                             Some(solution_id) => solution_id.to_string(),
                             None => String::new()
                         };
-                        
                         format!("$PSWTCRA,{},{},{},{}", request_counter, area_id, corrections_mask, solution_id)
                     },
                     None => {
