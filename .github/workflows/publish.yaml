@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-18.04
+          - os: ubuntu-20.04
             binary_target: x86_64-unknown-linux-musl
           - os: windows-2019
             binary_target: x86_64-pc-windows-msvc
@@ -19,7 +19,7 @@ jobs:
             binary_target: x86_64-apple-darwin
     steps:
     - name: Install musl tools
-      if: matrix.os == 'ubuntu-18.04'
+      if: matrix.os == 'ubuntu-20.04'
       run: sudo apt-get install musl-tools
     - name: Checkout
       uses: actions/checkout@v2
@@ -51,7 +51,7 @@ jobs:
   
   post-build:
     name: Post Build
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     needs: [ build ]
     steps:
       - name: Get tag

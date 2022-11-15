@@ -7,7 +7,7 @@ on:
 jobs:
   lint:
     name: Format and lint
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -29,7 +29,7 @@ jobs:
           args: --all-features --all-targets -- -D warnings
   test:
     name: Tests
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -50,7 +50,7 @@ jobs:
       - test
     strategy:
       matrix:
-        os: [windows-2019, macos-11, ubuntu-18.04]
+        os: [windows-2019, macos-11, ubuntu-20.04]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2

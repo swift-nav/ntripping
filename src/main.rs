@@ -33,8 +33,12 @@ struct Cli {
     height: String,
 
     /// Client ID
-    #[clap(long, default_value = "00000000-0000-0000-0000-000000000000")]
-    client: String,
+    #[clap(
+        long,
+        default_value = "00000000-0000-0000-0000-000000000000",
+        alias = "client"
+    )]
+    client_id: String,
 
     #[clap(short, long)]
     verbose: bool,
@@ -54,6 +58,22 @@ struct Cli {
     /// GGA update period, in seconds. 0 means to never send a GGA
     #[clap(long, default_value = "10")]
     gga_period: u64,
+
+    /// Request counter allows correlation between message sent and acknowledgment response from corrections stream
+    #[clap(long)]
+    request_counter: Option<u8>,
+
+    /// Area ID to be used in generation of CRA message. If this flag is set, ntripping outputs messages of type CRA rather than the default GGA
+    #[clap(long)]
+    area_id: Option<u32>,
+
+    /// Field specifying which types of corrections are to be received
+    #[clap(long)]
+    corrections_mask: Option<u16>,
+
+    /// Solution ID, the identifier of the connection stream to reconnect to in the event of disconnections
+    #[clap(long)]
+    solution_id: Option<u8>,
 }
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -90,12 +110,14 @@ fn main() -> Result<()> {
     let lat_dir = if latf < 0.0 { 'S' } else { 'N' };
     let lon_dir = if lonf < 0.0 { 'W' } else { 'E' };
 
+    let mut request_counter = opt.request_counter.unwrap_or(0);
+
     CURL.with(|curl| -> Result<()> {
         let mut curl = curl.borrow_mut();
 
         let mut headers = List::new();
         let mut client_header = "X-SwiftNav-Client-Id: ".to_string();
-        client_header.push_str(&opt.client);
+        client_header.push_str(&opt.client_id);
 
         headers.append("Transfer-Encoding:")?;
         headers.append("Ntrip-Version: Ntrip/2.0")?;
@@ -150,13 +172,24 @@ fn main() -> Result<()> {
                 LAST.with(|last| *last.borrow_mut() = now);
                 let datetime: DateTime<Utc> = now.into();
                 let time = datetime.format("%H%M%S.00");
-                let gpgga = format!(
-                    "$GPGGA,{},{:02}{:010.7},{},{:03}{:010.7},{},4,12,1.3,{:.2},M,0.0,M,1.7,0078",
-                    time, lat_deg, lat_min, lat_dir, lon_deg, lon_min, lon_dir, heightf
-                );
-                let checksum = checksum(gpgga.as_bytes());
-                let gpgga = format!("{}*{:X}\r\n", gpgga, checksum);
-                buf.write_all(gpgga.as_bytes()).unwrap();
+                let message = match &opt.area_id {
+                    Some(area_id) => {
+                        let corrections_mask = &opt.corrections_mask.unwrap_or(0);
+                        let solution_id = match &opt.solution_id {
+                            Some(solution_id) => solution_id.to_string(),
+                            None => String::new()
+                        };
+                        format!("$PSWTCRA,{},{},{},{}", request_counter, area_id, corrections_mask, solution_id)
+                    },
+                    None => {
+                        format!("$GPGGA,{},{:02}{:010.7},{},{:03}{:010.7},{},4,12,1.3,{:.2},M,0.0,M,1.7,0078",
+                        time, lat_deg, lat_min, lat_dir, lon_deg, lon_min, lon_dir, heightf)
+                    }
+                };
+                request_counter = request_counter.overflowing_add(1).0;
+                let checksum = checksum(message.as_bytes());
+                let message = format!("{}*{:X}\r\n", message, checksum);
+                buf.write_all(message.as_bytes()).unwrap();
                 Ok(buf.len())
             } else {
                 Err(ReadError::Pause)
