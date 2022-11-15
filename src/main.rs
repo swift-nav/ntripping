@@ -55,7 +55,7 @@ struct Cli {
     #[clap(long, default_value = "10")]
     gga_period: u64,
 
-    /// AreaID to be used in generation of CRA message. If this flag is set, ntripping outputs messages of type CRA rather than the default CRA.
+    /// AreaID to be used in generation of CRA message. If this flag is set, ntripping outputs messages of type CRA rather than the default GGA.
     #[clap(long)]
     area_id: Option<u32>,
 
