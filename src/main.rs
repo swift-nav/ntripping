@@ -174,11 +174,11 @@ fn main() -> Result<()> {
                 let time = datetime.format("%H%M%S.00");
                 let message = match &opt.area_id {
                     Some(area_id) => {
+                        let corrections_mask = &opt.corrections_mask.unwrap_or(0);
                         let solution_id = match &opt.solution_id {
                             Some(solution_id) => solution_id.to_string(),
                             None => String::new()
                         };
-                        let corrections_mask = &opt.corrections_mask.unwrap_or(0);
                         
                         format!("$PSWTCRA,{},{},{},{}", request_counter, area_id, corrections_mask, solution_id)
                     },
