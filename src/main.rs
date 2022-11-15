@@ -63,6 +63,10 @@ struct Cli {
     #[clap(long)]
     area_id: Option<u32>,
 
+    /// Field specifying which types of corrections are to be received
+    #[clap(long)]
+    corrections_mask: Option<u16>,
+
     /// Solution ID, the identifier of the connection stream to reconnect to in the event of disconnections
     #[clap(long)]
     solution_id: Option<u8>,
@@ -176,7 +180,9 @@ fn main() -> Result<()> {
                             Some(solution_id) => solution_id.to_string(),
                             None => String::new()
                         };
-                        format!("$PSWTCRA,{},{},,{},", request_counter, area_id, solution_id)
+                        let corrections_mask = &opt.corrections_mask.unwrap_or(0);
+                        
+                        format!("$PSWTCRA,{},{},{},{}", request_counter, area_id, corrections_mask, solution_id)
                     },
                     None => {
                         format!("$GPGGA,{},{:02}{:010.7},{},{:03}{:010.7},{},4,12,1.3,{:.2},M,0.0,M,1.7,0078",
