@@ -187,7 +187,7 @@ fn main() -> Result<()> {
                         time, lat_deg, lat_min, lat_dir, lon_deg, lon_min, lon_dir, heightf)
                     }
                 };
-                request_counter = request_counter + 1;
+                request_counter = request_counter.overflowing_add(1).0;
                 let checksum = checksum(message.as_bytes());
                 let message = format!("{}*{:X}\r\n", message, checksum);
                 buf.write_all(message.as_bytes()).unwrap();
