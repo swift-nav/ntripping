@@ -34,7 +34,7 @@ struct Cli {
 
     /// Client ID
     #[clap(long, default_value = "00000000-0000-0000-0000-000000000000")]
-    client: String,
+    client_id: String,
 
     #[clap(short, long)]
     verbose: bool,
@@ -55,13 +55,13 @@ struct Cli {
     #[clap(long, default_value = "10")]
     gga_period: u64,
 
-    /// AreaId to be used in generation of CRA message. If this flag is set, ntripping outputs messages of type CRA rather than the default CRA.
+    /// AreaID to be used in generation of CRA message. If this flag is set, ntripping outputs messages of type CRA rather than the default CRA.
     #[clap(long)]
-    areaid: Option<u32>,
+    area_id: Option<u32>,
 
     /// SolutionID, the identifier of the connection stream to reconnect to in the event of disconnections
     #[clap(long)]
-    sid: Option<u8>,
+    solution_id: Option<u8>,
 
     /// Request counter allows correlation between message sent and acknowledgment response from corrections stream
     #[clap(long)]
@@ -107,7 +107,7 @@ fn main() -> Result<()> {
 
         let mut headers = List::new();
         let mut client_header = "X-SwiftNav-Client-Id: ".to_string();
-        client_header.push_str(&opt.client);
+        client_header.push_str(&opt.client_id);
 
         headers.append("Transfer-Encoding:")?;
         headers.append("Ntrip-Version: Ntrip/2.0")?;
@@ -162,17 +162,17 @@ fn main() -> Result<()> {
                 LAST.with(|last| *last.borrow_mut() = now);
                 let datetime: DateTime<Utc> = now.into();
                 let time = datetime.format("%H%M%S.00");
-                let message = match &opt.areaid {
-                    Some(areaid) => {
+                let message = match &opt.area_id {
+                    Some(area_id) => {
                         let request_counter = match &opt.request_counter {
                             Some(rc) => rc.to_string(),
                             None => String::new()
                         };
-                        let solution_id = match &opt.sid {
-                            Some(sid) => sid.to_string(),
+                        let solution_id = match &opt.solution_id {
+                            Some(solution_id) => solution_id.to_string(),
                             None => String::new()
                         };
-                        format!("$PSWTCRA,{},{},,{},", request_counter, areaid, solution_id)
+                        format!("$PSWTCRA,{},{},,{},", request_counter, area_id, solution_id)
                     },
                     None => {
                         format!("$GPGGA,{},{:02}{:010.7},{},{:03}{:010.7},{},4,12,1.3,{:.2},M,0.0,M,1.7,0078",
