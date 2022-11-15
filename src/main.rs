@@ -59,6 +59,10 @@ struct Cli {
     #[clap(long, default_value = "10")]
     gga_period: u64,
 
+    /// Request counter allows correlation between message sent and acknowledgment response from corrections stream
+    #[clap(long)]
+    request_counter: Option<u8>,
+
     /// Area ID to be used in generation of CRA message. If this flag is set, ntripping outputs messages of type CRA rather than the default GGA
     #[clap(long)]
     area_id: Option<u32>,
@@ -70,10 +74,6 @@ struct Cli {
     /// Solution ID, the identifier of the connection stream to reconnect to in the event of disconnections
     #[clap(long)]
     solution_id: Option<u8>,
-
-    /// Request counter allows correlation between message sent and acknowledgment response from corrections stream
-    #[clap(long)]
-    request_counter: Option<u8>,
 }
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
