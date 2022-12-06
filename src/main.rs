@@ -17,20 +17,20 @@ struct Cli {
     url: String,
 
     /// Receiver latitude to report, in degrees
-    #[clap(long, default_value = "37.77101999622968", allow_hyphen_values = true)]
-    lat: String,
+    #[clap(long, default_value_t = 37.77101999622968, allow_hyphen_values = true)]
+    lat: f64,
 
     /// Receiver longitude to report, in degrees
     #[clap(
         long,
-        default_value = "-122.40315159140708",
+        default_value_t = -122.40315159140708,
         allow_hyphen_values = true
     )]
-    lon: String,
+    lon: f64,
 
     /// Receiver height to report, in meters
-    #[clap(long, default_value = "-5.549358852471994", allow_hyphen_values = true)]
-    height: String,
+    #[clap(long, default_value_t = -5.549358852471994, allow_hyphen_values = true)]
+    height: f64,
 
     /// Client ID
     #[clap(
@@ -56,12 +56,12 @@ struct Cli {
     password: Option<String>,
 
     /// GGA update period, in seconds. 0 means to never send a GGA
-    #[clap(long, default_value = "10")]
+    #[clap(long, default_value_t = 10)]
     gga_period: u64,
 
     /// Request counter allows correlation between message sent and acknowledgment response from corrections stream
-    #[clap(long)]
-    request_counter: Option<u8>,
+    #[clap(long, default_value_t = 0)]
+    request_counter: u8,
 
     /// Area ID to be used in generation of CRA message. If this flag is set, ntripping outputs messages of type CRA rather than the default GGA
     #[clap(long)]
@@ -94,12 +94,9 @@ fn checksum(buf: &[u8]) -> u8 {
 fn main() -> Result<()> {
     let opt = Cli::parse();
 
-    let latf: f64 = opt.lat.parse::<f64>()?;
-    let lonf: f64 = opt.lon.parse::<f64>()?;
-    let heightf: f64 = opt.height.parse::<f64>()?;
-
-    let latn = ((latf * 1e8).round() / 1e8).abs();
-    let lonn = ((lonf * 1e8).round() / 1e8).abs();
+    let latn = ((opt.lat * 1e8).round() / 1e8).abs();
+    let lonn = ((opt.lon * 1e8).round() / 1e8).abs();
+    let height = opt.height;
 
     let lat_deg: u16 = latn as u16;
     let lon_deg: u16 = lonn as u16;
@@ -107,10 +104,10 @@ fn main() -> Result<()> {
     let lat_min: f64 = (latn - (lat_deg as f64)) * 60.0;
     let lon_min: f64 = (lonn - (lon_deg as f64)) * 60.0;
 
-    let lat_dir = if latf < 0.0 { 'S' } else { 'N' };
-    let lon_dir = if lonf < 0.0 { 'W' } else { 'E' };
+    let lat_dir = if opt.lat < 0.0 { 'S' } else { 'N' };
+    let lon_dir = if opt.lon < 0.0 { 'W' } else { 'E' };
 
-    let mut request_counter = opt.request_counter.unwrap_or(0);
+    let mut request_counter = opt.request_counter;
 
     CURL.with(|curl| -> Result<()> {
         let mut curl = curl.borrow_mut();
@@ -179,14 +176,13 @@ fn main() -> Result<()> {
                             Some(solution_id) => solution_id.to_string(),
                             None => String::new()
                         };
-                        format!("$PSWTCRA,{},{},{},{}", request_counter, area_id, corrections_mask, solution_id)
+                        format!("$PSWTCRA,{request_counter},{area_id},{corrections_mask},{solution_id}")
                     },
                     None => {
-                        format!("$GPGGA,{},{:02}{:010.7},{},{:03}{:010.7},{},4,12,1.3,{:.2},M,0.0,M,1.7,0078",
-                        time, lat_deg, lat_min, lat_dir, lon_deg, lon_min, lon_dir, heightf)
+                        format!("$GPGGA,{time},{lat_deg:02}{lat_min:010.7},{lat_dir},{lon_deg:03}{lon_min:010.7},{lon_dir},4,12,1.3,{height:.2},M,0.0,M,1.7,0078")
                     }
                 };
-                request_counter = request_counter.overflowing_add(1).0;
+                request_counter = request_counter.wrapping_add(1);
                 let checksum = checksum(message.as_bytes());
                 let message = format!("{}*{:X}\r\n", message, checksum);
                 buf.write_all(message.as_bytes()).unwrap();
