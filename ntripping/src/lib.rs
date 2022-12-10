@@ -140,14 +140,14 @@ where
 
 #[derive(Debug)]
 pub struct ReceiveHalf {
-    response: hyper::Response<body::Incoming>,
+    body: body::Incoming,
 }
 
 impl Stream for ReceiveHalf {
     type Item = Result<Bytes, ReceiveError>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        match Pin::new(self.response.body_mut()).poll_frame(cx) {
+        match Pin::new(&mut self.body).poll_frame(cx) {
             Poll::Ready(Some(Ok(frame))) => {
                 let chunk = frame.into_data();
                 if let Some(chunk) = &chunk {
@@ -280,13 +280,13 @@ async fn connect(
 
     let (tx, rx) = mpsc::channel::<Bytes>(1);
     let request = builder.body(ChannelBody { rx })?;
-    let response = sender.send_request(request).await?;
-    if response.status() != StatusCode::OK {
-        return Err(ConnectionError::BadStatus(response.status()));
+    let (parts, body) = sender.send_request(request).await?.into_parts();
+    if parts.status != StatusCode::OK {
+        return Err(ConnectionError::BadStatus(parts.status));
     }
     Ok(Connection {
         send: SendHalf { tx },
-        recv: ReceiveHalf { response },
+        recv: ReceiveHalf { body },
     })
 }
 
