@@ -19,9 +19,9 @@ use hyper::{
 };
 use tokio::net::TcpStream;
 
-pub use error::Error;
+use sentence::Sentence;
 
-use crate::sentence::Sentence;
+pub use error::Error;
 
 #[derive(Debug, Default)]
 pub struct Client {
