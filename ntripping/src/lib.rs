@@ -1,4 +1,3 @@
-mod error;
 mod header;
 pub mod sentence;
 
@@ -17,11 +16,9 @@ use hyper::{
     client::conn::http1 as conn,
     Request, StatusCode, Uri,
 };
-use tokio::net::TcpStream;
+use tokio::{io, net::TcpStream};
 
 use sentence::Sentence;
-
-pub use error::Error;
 
 #[derive(Debug, Default)]
 pub struct Client {
@@ -50,7 +47,7 @@ impl Client {
         self
     }
 
-    pub async fn connect(&self, uri: Uri) -> Result<Connection, Error> {
+    pub async fn connect(&self, uri: Uri) -> Result<Connection, ConnectionError> {
         connect(uri, self.headers()).await
     }
 
@@ -245,9 +242,9 @@ impl Body for ChannelBody {
 async fn connect(
     uri: Uri,
     headers: impl Iterator<Item = (header::HeaderName, String)>,
-) -> Result<Connection, Error> {
+) -> Result<Connection, ConnectionError> {
     let Some(authority) = uri.authority().cloned() else {
-        return Err(Error::InvalidUri("invalid authority"));
+        return Err(ConnectionError::InvalidUri("invalid authority"));
     };
 
     let addr = format!("{}:{}", authority.host(), uri.port_u16().unwrap_or(2101));
@@ -285,13 +282,53 @@ async fn connect(
     let request = builder.body(ChannelBody { rx })?;
     let response = sender.send_request(request).await?;
     if response.status() != StatusCode::OK {
-        return Err(Error::BadStatus(response.status()));
+        return Err(ConnectionError::BadStatus(response.status()));
     }
     Ok(Connection {
         send: SendHalf { tx },
         recv: ReceiveHalf { response },
     })
 }
+
+#[derive(Debug)]
+pub enum ConnectionError {
+    InvalidUri(&'static str),
+    BadStatus(hyper::StatusCode),
+    Io(io::Error),
+    // hyper or http
+    Http(Box<dyn std::error::Error + Send + Sync + 'static>),
+}
+
+impl From<io::Error> for ConnectionError {
+    fn from(e: io::Error) -> Self {
+        Self::Io(e)
+    }
+}
+
+impl From<hyper::Error> for ConnectionError {
+    fn from(e: hyper::Error) -> Self {
+        Self::Http(Box::new(e))
+    }
+}
+
+impl From<hyper::http::Error> for ConnectionError {
+    fn from(e: hyper::http::Error) -> Self {
+        Self::Http(Box::new(e))
+    }
+}
+
+impl std::fmt::Display for ConnectionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidUri(msg) => write!(f, "invalid uri: {msg}"),
+            Self::Io(e) => write!(f, "io error: {e}"),
+            Self::Http(e) => write!(f, "http error: {e}"),
+            Self::BadStatus(status) => write!(f, "bad status: {status}"),
+        }
+    }
+}
+
+impl std::error::Error for ConnectionError {}
 
 #[cfg(test)]
 mod tests {
