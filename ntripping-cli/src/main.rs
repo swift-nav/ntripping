@@ -19,7 +19,7 @@ use ntripping::{
 )]
 struct Cli {
     /// URL of the NTRIP caster
-    #[clap(long, default_value = "na.skylark.swiftnav.com:2101/CRS")]
+    #[clap(long, default_value = "na.skylark.swiftnav.com:2101")]
     url: String,
 
     /// Receiver latitude to report, in degrees
