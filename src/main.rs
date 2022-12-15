@@ -74,6 +74,12 @@ struct Cli {
     /// Solution ID, the identifier of the connection stream to reconnect to in the event of disconnections
     #[clap(long)]
     solution_id: Option<u8>,
+
+    #[clap(long)]
+    distance: Option<f64>,
+
+    #[clap(long)]
+    bearing: Option<f64>,
 }
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -91,24 +97,27 @@ fn checksum(buf: &[u8]) -> u8 {
     sum
 }
 
+fn next_lat_lon(lat: f64, lon: f64, distance: f64, bearing: f64) -> (f64, f64) {
+    let earth_radius = 6371e3;
+    let lat1 = lat.to_radians();
+    let lon1 = lon.to_radians();
+    let bearing = bearing.to_radians();
+
+    let lat2 = (lat1.sin() * (distance / earth_radius).cos()
+        + lat1.cos() * (distance / earth_radius).sin() * bearing.cos())
+    .asin();
+    let lon2 = lon1
+        + (bearing.sin() * (distance / earth_radius).sin() * lat1.cos())
+            .atan2((distance / earth_radius).cos() - lat1.sin() * lat2.sin());
+    (lat2.to_degrees(), lon2.to_degrees())
+}
+
 fn main() -> Result<()> {
     let opt = Cli::parse();
 
-    let latf: f64 = opt.lat.parse::<f64>()?;
-    let lonf: f64 = opt.lon.parse::<f64>()?;
+    let mut latf: f64 = opt.lat.parse::<f64>()?;
+    let mut lonf: f64 = opt.lon.parse::<f64>()?;
     let heightf: f64 = opt.height.parse::<f64>()?;
-
-    let latn = ((latf * 1e8).round() / 1e8).abs();
-    let lonn = ((lonf * 1e8).round() / 1e8).abs();
-
-    let lat_deg: u16 = latn as u16;
-    let lon_deg: u16 = lonn as u16;
-
-    let lat_min: f64 = (latn - (lat_deg as f64)) * 60.0;
-    let lon_min: f64 = (lonn - (lon_deg as f64)) * 60.0;
-
-    let lat_dir = if latf < 0.0 { 'S' } else { 'N' };
-    let lon_dir = if lonf < 0.0 { 'W' } else { 'E' };
 
     let mut request_counter = opt.request_counter.unwrap_or(0);
 
@@ -182,8 +191,19 @@ fn main() -> Result<()> {
                         format!("$PSWTCRA,{},{},{},{}", request_counter, area_id, corrections_mask, solution_id)
                     },
                     None => {
-                        format!("$GPGGA,{},{:02}{:010.7},{},{:03}{:010.7},{},4,12,1.3,{:.2},M,0.0,M,1.7,0078",
-                        time, lat_deg, lat_min, lat_dir, lon_deg, lon_min, lon_dir, heightf)
+                        let latn = ((latf * 1e8).round() / 1e8).abs();
+                        let lonn = ((lonf * 1e8).round() / 1e8).abs();
+                        let lat_deg = latn as u16;
+                        let lon_deg = lonn as u16;
+                        let lat_min = (latn - (lat_deg as f64)) * 60.0;
+                        let lon_min = (lonn - (lon_deg as f64)) * 60.0;
+                        let lat_dir = if latf < 0.0 { 'S' } else { 'N' };
+                        let lon_dir = if lonf < 0.0 { 'W' } else { 'E' };
+                        let s = format!("$GPGGA,{},{:02}{:010.7},{},{:03}{:010.7},{},4,12,1.3,{:.2},M,0.0,M,1.7,0078", time, lat_deg, lat_min, lat_dir, lon_deg, lon_min, lon_dir, heightf);
+                        if let Some((distance, bearing)) = opt.distance.zip(opt.bearing){
+                            (latf, lonf) = next_lat_lon(latf, lonf, distance, bearing);
+                        }
+                        s
                     }
                 };
                 request_counter = request_counter.overflowing_add(1).0;
