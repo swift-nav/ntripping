@@ -1,3 +1,4 @@
+// https://github.com/rust-lang/rust-clippy/issues/9776
 #![allow(clippy::declare_interior_mutable_const)]
 
 pub use hyper::http::header::*;
