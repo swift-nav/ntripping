@@ -174,6 +174,7 @@ fn main() -> Result<()> {
             1 => LevelFilter::DEBUG,
             _ => LevelFilter::TRACE,
         })
+        .with_writer(std::io::stderr)
         .compact()
         .init();
     tokio::runtime::Builder::new_current_thread()
