@@ -1,0 +1,21 @@
+[package]
+name = "ntripping-cli"
+version = "1.4.0"
+authors = ["Swift Navigation <dev@swiftnav.com>"]
+edition = "2021"
+publish = true
+
+[[bin]]
+name = "ntripping"
+path = "src/main.rs"
+
+[dependencies]
+chrono = "0.4.23"
+clap = { version = "4", features = ["derive"] }
+futures-util = "0.3.25"
+ntripping = { path = "../ntripping" }
+tokio = { version = "1.23.0", features = ["rt", "time", "io-std", "io-util"] }
+tracing-subscriber = "0.3.16"
+
+[build-dependencies]
+vergen = "3"

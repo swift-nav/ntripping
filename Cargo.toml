@@ -1,14 +1,2 @@
-[package]
-name = "ntripping"
-version = "1.4.0"
-authors = ["Swift Navigation <dev@swiftnav.com>"]
-edition = "2018"
-publish = true
-
-[dependencies]
-curl = "^0.4.44"
-clap = { version = "4", features = ["derive"] }
-chrono = "0.4"
-
-[build-dependencies]
-vergen = "3"
+[workspace]
+members = ["ntripping", "ntripping-cli"]

@@ -1,0 +1,16 @@
+[package]
+name = "ntripping"
+version = "1.4.0"
+authors = ["Swift Navigation <dev@swiftnav.com>"]
+edition = "2021"
+publish = true
+
+[dependencies]
+base64 = "0.13"
+bytes = "1.0"
+chrono = "0.4"
+futures-channel = { version = "0.3", features = ["sink"] }
+futures-util = { version = "0.3", default-features = false, features = ["sink"] }
+hyper = { version = "1.0.0-rc.1", features = ["client", "http1"] }
+tokio = { version = "1.23", features = ["net", "rt"] }
+tracing = "0.1"
