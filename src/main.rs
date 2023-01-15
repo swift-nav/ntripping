@@ -113,7 +113,7 @@ struct Command {
 }
 
 impl Command {
-    fn to_bytes(&self) -> Vec<u8> {
+    fn to_bytes(self) -> Vec<u8> {
         let now = self.epoch.map_or_else(SystemTime::now, |e| {
             SystemTime::UNIX_EPOCH + Duration::from_secs(e.into())
         });
@@ -261,19 +261,16 @@ fn main() -> Result<()> {
     let opt = Cli::parse();
 
     let (tx, rx) = mpsc::sync_channel::<Vec<u8>>(1);
-    let ready = Arc::new(AtomicBool::new(true));
+    let ready = Arc::new(AtomicBool::new(false));
     let cmds = get_commands(&opt)?;
 
     CURL.with(|curl| -> Result<()> {
         let mut curl = curl.borrow_mut();
 
         let mut headers = List::new();
-        let mut client_header = "X-SwiftNav-Client-Id: ".to_string();
-        client_header.push_str(&opt.client_id);
-
         headers.append("Transfer-Encoding:")?;
         headers.append("Ntrip-Version: Ntrip/2.0")?;
-        headers.append(&client_header)?;
+        headers.append(&format!("X-SwiftNav-Client-Id: {}", opt.client_id))?;
 
         curl.http_headers(headers)?;
         curl.useragent("NTRIP ntrip-client/1.0")?;
