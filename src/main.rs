@@ -3,10 +3,7 @@ use std::fmt::Write;
 use std::io::{self, Write as _};
 use std::iter;
 use std::path::PathBuf;
-use std::sync::{
-    atomic::{AtomicBool, Ordering::SeqCst},
-    mpsc, Arc,
-};
+use std::rc::Rc;
 use std::thread;
 use std::time::{Duration, SystemTime};
 
@@ -14,11 +11,7 @@ use chrono::{DateTime, Utc};
 use clap::{ArgGroup, Parser};
 use curl::easy::{Easy, HttpVersion, List, ReadError};
 
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
-
-thread_local! {
-    static CURL: RefCell<Easy> = RefCell::new(Easy::new());
-}
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
 #[derive(Debug, Clone, Parser)]
 #[command(
@@ -40,7 +33,7 @@ thread_local! {
 )]
 struct Cli {
     /// URL of the NTRIP caster
-    #[arg(long, default_value = "na.skylark.swiftnav.com:2101/CRS")]
+    #[arg(long, default_value = "na.skylark.swiftnav.com:2101/")]
     url: String,
 
     /// Receiver latitude to report, in degrees
@@ -191,62 +184,91 @@ impl Message {
     }
 }
 
-fn get_commands(opt: &Cli) -> Result<Box<dyn Iterator<Item = Command> + Send>> {
+fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command>>> {
     if opt.gga_period == 0 && opt.input.is_none() {
         return Ok(Box::new(iter::empty()));
     }
-    match opt.clone() {
-        Cli {
-            input: Some(path), ..
-        } => {
-            let file = std::fs::File::open(path)?;
-            let cmds: Vec<_> = serde_yaml::from_reader(file)?;
-            Ok(Box::new(cmds.into_iter()))
-        }
-        opt if opt.area_id.is_some() => {
-            let first = Command {
-                epoch: opt.epoch,
-                after: None,
-                crc: None,
-                message: Message::Cra {
-                    request_counter: opt.request_counter,
-                    area_id: opt.area_id,
-                    corrections_mask: opt.corrections_mask,
-                    solution_id: opt.solution_id,
-                },
-            };
-            let it = iter::successors(Some(first), move |prev| {
-                let mut next = *prev;
-                next.after = Some(opt.gga_period);
-                if let Message::Cra {
-                    request_counter: Some(ref mut counter),
-                    ..
-                } = &mut next.message
-                {
-                    *counter = counter.wrapping_add(1);
-                }
-                Some(next)
-            });
-            Ok(Box::new(it))
-        }
-        opt => {
-            let first = Command {
-                epoch: opt.epoch,
-                after: None,
-                crc: None,
-                message: Message::Gga {
-                    lat: opt.lat,
-                    lon: opt.lon,
-                    height: opt.height,
-                },
-            };
-            let rest = iter::repeat(Command {
-                after: Some(opt.gga_period),
-                ..first
-            });
-            Ok(Box::new(iter::once(first).chain(rest)))
-        }
+
+    if let Some(path) = opt.input {
+        let file = std::fs::File::open(path)?;
+        let cmds: Vec<_> = serde_yaml::from_reader(file)?;
+        return Ok(Box::new(cmds.into_iter()));
     }
+
+    if opt.area_id.is_some() {
+        let first = Command {
+            epoch: opt.epoch,
+            after: None,
+            crc: None,
+            message: Message::Cra {
+                request_counter: opt.request_counter,
+                area_id: opt.area_id,
+                corrections_mask: opt.corrections_mask,
+                solution_id: opt.solution_id,
+            },
+        };
+        let it = iter::successors(Some(first), move |prev| {
+            let mut next = *prev;
+            if let Message::Cra {
+                request_counter: Some(ref mut counter),
+                ..
+            } = &mut next.message
+            {
+                *counter = counter.wrapping_add(1);
+            }
+            next.after = Some(opt.gga_period);
+            Some(next)
+        });
+        Ok(Box::new(it))
+    } else {
+        let first = Command {
+            epoch: opt.epoch,
+            after: None,
+            crc: None,
+            message: Message::Gga {
+                lat: opt.lat,
+                lon: opt.lon,
+                height: opt.height,
+            },
+        };
+        let rest = iter::repeat(Command {
+            after: Some(opt.gga_period),
+            ..first
+        });
+        Ok(Box::new(iter::once(first).chain(rest)))
+    }
+}
+
+fn get_curl(opt: &Cli) -> Result<Easy> {
+    let mut curl = Easy::new();
+
+    let mut headers = List::new();
+    headers.append("Transfer-Encoding:")?;
+    headers.append("Ntrip-Version: Ntrip/2.0")?;
+    headers.append(&format!("X-SwiftNav-Client-Id: {}", opt.client_id))?;
+
+    curl.http_headers(headers)?;
+    curl.useragent("NTRIP ntrip-client/1.0")?;
+    curl.url(&opt.url)?;
+    curl.progress(true)?;
+    curl.put(true)?;
+    curl.custom_request("GET")?;
+    curl.http_version(HttpVersion::Any)?;
+    curl.http_09_allowed(true)?;
+
+    if opt.verbose {
+        curl.verbose(true)?;
+    }
+
+    if let Some(username) = &opt.username {
+        curl.username(username)?;
+    }
+
+    if let Some(password) = &opt.password {
+        curl.password(password)?;
+    }
+
+    Ok(curl)
 }
 
 fn checksum(buf: &[u8]) -> u8 {
@@ -260,93 +282,70 @@ fn checksum(buf: &[u8]) -> u8 {
 fn main() -> Result<()> {
     let opt = Cli::parse();
 
-    let (tx, rx) = mpsc::sync_channel::<Vec<u8>>(1);
-    let ready = Arc::new(AtomicBool::new(false));
-    let cmds = get_commands(&opt)?;
+    let mut curl = get_curl(&opt)?;
+    let (tx, rx) = flume::bounded::<Vec<u8>>(1);
+    let transfer = Rc::new(RefCell::new(curl.transfer()));
 
-    CURL.with(|curl| -> Result<()> {
-        let mut curl = curl.borrow_mut();
-
-        let mut headers = List::new();
-        headers.append("Transfer-Encoding:")?;
-        headers.append("Ntrip-Version: Ntrip/2.0")?;
-        headers.append(&format!("X-SwiftNav-Client-Id: {}", opt.client_id))?;
-
-        curl.http_headers(headers)?;
-        curl.useragent("NTRIP ntrip-client/1.0")?;
-        curl.url(&opt.url)?;
-        curl.progress(true)?;
-        curl.put(true)?;
-        curl.custom_request("GET")?;
-        curl.http_version(HttpVersion::Any)?;
-        curl.http_09_allowed(true)?;
-
-        if opt.verbose {
-            curl.verbose(true)?;
+    transfer.borrow_mut().write_function(|buf| {
+        if let Err(e) = io::stdout().write_all(buf) {
+            eprintln!("write error: {e}");
+            return Ok(0);
         }
-
-        if let Some(username) = &opt.username {
-            curl.username(username)?;
-        }
-
-        if let Some(password) = &opt.password {
-            curl.password(password)?;
-        }
-
-        curl.write_function(|buf| Ok(io::stdout().write_all(buf).map_or(0, |_| buf.len())))?;
-
-        curl.progress_function({
-            let ready = Arc::clone(&ready);
-            move |_dltot, _dlnow, _ultot, _ulnow| {
-                if ready.swap(false, SeqCst) {
-                    if let Err(e) = CURL.with(|curl| curl.borrow().unpause_read()) {
-                        eprintln!("unpause error: {e}");
-                        return false;
-                    }
-                }
-                true
-            }
-        })?;
-
-        curl.read_function(move |mut buf: &mut [u8]| {
-            let Ok(bytes) = rx.try_recv() else {
-                return Err(ReadError::Pause);
-            };
-            if let Err(e) = buf.write_all(&bytes) {
-                eprintln!("write error: {e}");
-                return Err(ReadError::Abort);
-            }
-            Ok(bytes.len())
-        })?;
-
-        Ok(())
+        Ok(buf.len())
     })?;
 
-    if atty::is(atty::Stream::Stdin) {
-        thread::spawn(move || {
-            for cmd in cmds {
+    transfer.borrow_mut().progress_function({
+        let rx = &rx;
+        let transfer = Rc::clone(&transfer);
+        move |_dltot, _dlnow, _ultot, _ulnow| {
+            if !rx.is_empty() {
+                if let Err(e) = transfer.borrow().unpause_read() {
+                    eprintln!("unpause error: {e}");
+                    return false;
+                }
+            }
+            true
+        }
+    })?;
+
+    transfer.borrow_mut().read_function(|mut buf: &mut [u8]| {
+        let Ok(bytes) = rx.try_recv() else {
+            return Err(ReadError::Pause);
+        };
+        if let Err(e) = buf.write_all(&bytes) {
+            eprintln!("read error: {e}");
+            return Err(ReadError::Abort);
+        }
+        Ok(bytes.len())
+    })?;
+
+    let handle = thread::spawn(move || {
+        if atty::is(atty::Stream::Stdin) {
+            let commands = get_commands(opt.clone())?;
+            for cmd in commands {
                 if let Some(d) = cmd.after {
                     thread::sleep(Duration::from_secs(d));
                 }
                 if tx.send(cmd.to_bytes()).is_err() {
                     break;
                 }
-                ready.store(true, SeqCst);
             }
-        });
-    } else {
-        thread::spawn(move || {
+        } else {
             let stdin = io::stdin().lock();
             for line in io::BufRead::lines(stdin) {
-                if tx.send(line.unwrap().into_bytes()).is_err() {
+                let bytes = line?.into_bytes();
+                if tx.send(bytes).is_err() {
                     break;
                 }
-                ready.store(true, SeqCst);
             }
-        });
-    };
-
-    CURL.with(|curl| curl.borrow().perform())?;
-
-    Ok(())
+        }
+        Result::Ok(())
+    });
+    transfer.borrow().perform()?;
+    if !handle.is_finished() {
+        Ok(())
+    } else {
+        // an error stopped the thread early
+        handle.join().unwrap()
+    }
 }
