@@ -98,12 +98,16 @@ struct Cli {
 
 #[derive(Debug, Clone, Copy, serde::Deserialize)]
 struct Command {
-    epoch: Option<u32>,
-    #[serde(default = "10")]
+    #[serde(default = "default_after")]
     after: u64,
+    epoch: Option<u32>,
     crc: Option<u8>,
     #[serde(flatten)]
     message: Message,
+}
+
+fn default_after() -> u64 {
+    10
 }
 
 impl Command {
@@ -206,7 +210,7 @@ fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command>>> {
     if opt.area_id.is_some() {
         let first = Command {
             epoch: opt.epoch,
-            after: None,
+            after: 0,
             crc: None,
             message: Message::Cra {
                 request_counter: opt.request_counter,
@@ -224,14 +228,14 @@ fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command>>> {
             {
                 *counter = counter.wrapping_add(1);
             }
-            next.after = Some(opt.gga_period);
+            next.after = opt.gga_period;
             Some(next)
         });
         Ok(Box::new(it))
     } else {
         let first = Command {
             epoch: opt.epoch,
-            after: None,
+            after: 0,
             crc: None,
             message: Message::Gga {
                 lat: opt.lat,
@@ -240,7 +244,7 @@ fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command>>> {
             },
         };
         let rest = iter::repeat(Command {
-            after: Some(opt.gga_period),
+            after: opt.gga_period,
             ..first
         });
         Ok(Box::new(iter::once(first).chain(rest)))
