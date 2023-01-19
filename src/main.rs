@@ -192,14 +192,14 @@ impl Message {
 }
 
 fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command>>> {
-    if opt.gga_period == 0 && opt.input.is_none() {
-        return Ok(Box::new(iter::empty()));
-    }
-
     if let Some(path) = opt.input {
         let file = std::fs::File::open(path)?;
         let cmds: Vec<_> = serde_yaml::from_reader(file)?;
         return Ok(Box::new(cmds.into_iter()));
+    }
+
+    if opt.gga_period == 0 {
+        return Ok(Box::new(iter::empty()));
     }
 
     if opt.area_id.is_some() {
