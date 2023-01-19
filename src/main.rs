@@ -112,9 +112,16 @@ impl Command {
         });
         let message = self.message.format(now.into());
         let checksum = self.crc.unwrap_or_else(|| checksum(message.as_bytes()));
-        let message = format!("{message}*{checksum:X}\r\n");
-        message.into_bytes()
+        format!("{message}*{checksum:X}\r\n").into_bytes()
     }
+}
+
+fn checksum(buf: &[u8]) -> u8 {
+    let mut sum = 0;
+    for c in &buf[1..] {
+        sum ^= c;
+    }
+    sum
 }
 
 #[derive(Debug, Clone, Copy, serde::Deserialize)]
@@ -239,7 +246,9 @@ fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command>>> {
     }
 }
 
-fn get_curl(opt: &Cli) -> Result<Easy> {
+fn main() -> Result<()> {
+    let opt = Cli::parse();
+
     let mut curl = Easy::new();
 
     let mut headers = List::new();
@@ -268,31 +277,8 @@ fn get_curl(opt: &Cli) -> Result<Easy> {
         curl.password(password)?;
     }
 
-    Ok(curl)
-}
-
-fn checksum(buf: &[u8]) -> u8 {
-    let mut sum = 0;
-    for c in &buf[1..] {
-        sum ^= c;
-    }
-    sum
-}
-
-fn main() -> Result<()> {
-    let opt = Cli::parse();
-
-    let mut curl = get_curl(&opt)?;
     let (tx, rx) = flume::bounded::<Vec<u8>>(1);
     let transfer = Rc::new(RefCell::new(curl.transfer()));
-
-    transfer.borrow_mut().write_function(|buf| {
-        if let Err(e) = io::stdout().write_all(buf) {
-            eprintln!("write error: {e}");
-            return Ok(0);
-        }
-        Ok(buf.len())
-    })?;
 
     transfer.borrow_mut().progress_function({
         let rx = &rx;
@@ -308,11 +294,19 @@ fn main() -> Result<()> {
         }
     })?;
 
-    transfer.borrow_mut().read_function(|mut buf: &mut [u8]| {
+    transfer.borrow_mut().write_function(|data| {
+        if let Err(e) = io::stdout().write_all(data) {
+            eprintln!("write error: {e}");
+            return Ok(0);
+        }
+        Ok(data.len())
+    })?;
+
+    transfer.borrow_mut().read_function(|mut data: &mut [u8]| {
         let Ok(bytes) = rx.try_recv() else {
             return Err(ReadError::Pause);
         };
-        if let Err(e) = buf.write_all(&bytes) {
+        if let Err(e) = data.write_all(&bytes) {
             eprintln!("read error: {e}");
             return Err(ReadError::Abort);
         }
@@ -320,28 +314,20 @@ fn main() -> Result<()> {
     })?;
 
     let handle = thread::spawn(move || {
-        if atty::is(atty::Stream::Stdin) {
-            let commands = get_commands(opt.clone())?;
-            for cmd in commands {
-                if let Some(d) = cmd.after {
-                    thread::sleep(Duration::from_secs(d));
-                }
-                if tx.send(cmd.to_bytes()).is_err() {
-                    break;
-                }
+        let commands = get_commands(opt.clone())?;
+        for cmd in commands {
+            if let Some(d) = cmd.after {
+                thread::sleep(Duration::from_secs(d));
             }
-        } else {
-            let stdin = io::stdin().lock();
-            for line in io::BufRead::lines(stdin) {
-                let bytes = line?.into_bytes();
-                if tx.send(bytes).is_err() {
-                    break;
-                }
+            if tx.send(cmd.to_bytes()).is_err() {
+                break;
             }
         }
-        Result::Ok(())
+        Ok(())
     });
+
     transfer.borrow().perform()?;
+
     if !handle.is_finished() {
         Ok(())
     } else {
