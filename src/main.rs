@@ -317,8 +317,8 @@ fn main() -> Result<()> {
     let handle = thread::spawn(move || {
         let commands = get_commands(opt.clone())?;
         for cmd in commands {
-            if let Some(d) = cmd.after {
-                thread::sleep(Duration::from_secs(d));
+            if cmd.after > 0 {
+                thread::sleep(Duration::from_secs(cmd.after));
             }
             if tx.send(cmd.to_bytes()).is_err() {
                 break;
