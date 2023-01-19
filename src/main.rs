@@ -72,7 +72,7 @@ struct Cli {
     password: Option<String>,
 
     /// GGA update period, in seconds. 0 means to never send a GGA
-    #[arg(long, default_value_t = 10)]
+    #[arg(long, default_value_t = 10, conflicts_with = "input")]
     gga_period: u64,
 
     /// Request counter allows correlation between message sent and acknowledgment response from corrections stream
