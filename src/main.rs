@@ -99,7 +99,8 @@ struct Cli {
 #[derive(Debug, Clone, Copy, serde::Deserialize)]
 struct Command {
     epoch: Option<u32>,
-    after: Option<u64>,
+    #[serde(default = "10")]
+    after: u64,
     crc: Option<u8>,
     #[serde(flatten)]
     message: Message,
