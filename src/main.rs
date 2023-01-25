@@ -196,7 +196,7 @@ impl Message {
     }
 }
 
-fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command>>> {
+fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command> + Send>> {
     if let Some(path) = opt.input {
         let file = std::fs::File::open(path)?;
         let cmds: Vec<_> = serde_yaml::from_reader(file)?;
@@ -318,8 +318,8 @@ fn main() -> Result<()> {
         Ok(bytes.len())
     })?;
 
+    let commands = get_commands(opt.clone())?;
     let handle = thread::spawn(move || {
-        let commands = get_commands(opt.clone())?;
         for cmd in commands {
             if cmd.after > 0 {
                 thread::sleep(Duration::from_secs(cmd.after));
