@@ -116,7 +116,7 @@ fn default_after() -> u64 {
 
 impl Command {
     fn to_bytes(self) -> Vec<u8> {
-        (self.to_string() + "\r\n").into_bytes()
+        self.to_string().into_bytes()
     }
 }
 
@@ -334,9 +334,10 @@ fn main() -> Result<()> {
     })?;
 
     transfer.borrow_mut().read_function(|mut data: &mut [u8]| {
-        let Ok(bytes) = rx.try_recv() else {
+        let Ok(mut bytes) = rx.try_recv() else {
             return Err(ReadError::Pause);
         };
+        bytes.extend_from_slice(b"\r\n");
         if let Err(e) = data.write_all(&bytes) {
             eprintln!("read error: {e}");
             return Err(ReadError::Abort);
