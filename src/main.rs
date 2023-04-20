@@ -75,6 +75,10 @@ struct Cli {
     #[arg(long, default_value_t = 10, conflicts_with = "input")]
     gga_period: u64,
 
+    /// Send the GGA in the HTTP header
+    #[arg(long)]
+    gga_header: bool,
+
     /// Request counter allows correlation between message sent and acknowledgment response from corrections stream
     #[arg(long)]
     request_counter: Option<u8>,
@@ -112,12 +116,18 @@ fn default_after() -> u64 {
 
 impl Command {
     fn to_bytes(self) -> Vec<u8> {
+        (self.to_string() + "\r\n").into_bytes()
+    }
+}
+
+impl std::fmt::Display for Command {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let now = self.epoch.map_or_else(SystemTime::now, |e| {
             SystemTime::UNIX_EPOCH + Duration::from_secs(e.into())
         });
         let message = self.message.format(now.into());
         let checksum = self.crc.unwrap_or_else(|| checksum(message.as_bytes()));
-        format!("{message}*{checksum:X}\r\n").into_bytes()
+        write!(f, "{message}*{checksum:X}")
     }
 }
 
@@ -196,6 +206,33 @@ impl Message {
     }
 }
 
+fn build_cra(opt: &Cli) -> Command {
+    Command {
+        epoch: opt.epoch,
+        after: 0,
+        crc: None,
+        message: Message::Cra {
+            request_counter: opt.request_counter,
+            area_id: opt.area_id,
+            corrections_mask: opt.corrections_mask,
+            solution_id: opt.solution_id,
+        },
+    }
+}
+
+fn build_gga(opt: &Cli) -> Command {
+    Command {
+        epoch: opt.epoch,
+        after: 0,
+        crc: None,
+        message: Message::Gga {
+            lat: opt.lat,
+            lon: opt.lon,
+            height: opt.height,
+        },
+    }
+}
+
 fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command> + Send>> {
     if let Some(path) = opt.input {
         let file = std::fs::File::open(path)?;
@@ -208,17 +245,7 @@ fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command> + Send>> {
     }
 
     if opt.area_id.is_some() {
-        let first = Command {
-            epoch: opt.epoch,
-            after: 0,
-            crc: None,
-            message: Message::Cra {
-                request_counter: opt.request_counter,
-                area_id: opt.area_id,
-                corrections_mask: opt.corrections_mask,
-                solution_id: opt.solution_id,
-            },
-        };
+        let first = build_cra(&opt);
         let it = iter::successors(Some(first), move |prev| {
             let mut next = *prev;
             if let Message::Cra {
@@ -233,16 +260,7 @@ fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command> + Send>> {
         });
         Ok(Box::new(it))
     } else {
-        let first = Command {
-            epoch: opt.epoch,
-            after: 0,
-            crc: None,
-            message: Message::Gga {
-                lat: opt.lat,
-                lon: opt.lon,
-                height: opt.height,
-            },
-        };
+        let first = build_gga(&opt);
         let rest = iter::repeat(Command {
             after: opt.gga_period,
             ..first
@@ -260,6 +278,14 @@ fn main() -> Result<()> {
     headers.append("Transfer-Encoding:")?;
     headers.append("Ntrip-Version: Ntrip/2.0")?;
     headers.append(&format!("X-SwiftNav-Client-Id: {}", opt.client_id))?;
+
+    if opt.gga_header {
+        if opt.area_id.is_some() {
+            headers.append(&format!("Ntrip-CRA: {}", build_cra(&opt)))?;
+        } else {
+            headers.append(&format!("Ntrip-GGA: {}", build_gga(&opt)))?;
+        }
+    }
 
     curl.http_headers(headers)?;
     curl.useragent("NTRIP ntrip-client/1.0")?;
