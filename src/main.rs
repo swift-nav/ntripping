@@ -71,13 +71,18 @@ struct Cli {
     #[arg(long)]
     password: Option<String>,
 
-    /// GGA update period, in seconds. 0 means to never send a GGA
-    #[arg(long, default_value_t = 10, conflicts_with = "input")]
-    gga_period: u64,
+    /// NMEA sentence update period, in seconds. 0 means to never send a sentence
+    #[arg(
+        long,
+        default_value_t = 10,
+        conflicts_with = "input",
+        alias = "gga-period"
+    )]
+    nmea_period: u64,
 
-    /// Send the GGA in the HTTP header
+    /// Send the NMEA sentence in the HTTP header
     #[arg(long)]
-    gga_header: bool,
+    nmea_header: bool,
 
     /// Request counter allows correlation between message sent and acknowledgment response from corrections stream
     #[arg(long)]
@@ -240,7 +245,7 @@ fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command> + Send>> {
         return Ok(Box::new(cmds.into_iter()));
     }
 
-    if opt.gga_period == 0 {
+    if opt.nmea_period == 0 {
         return Ok(Box::new(iter::empty()));
     }
 
@@ -255,14 +260,14 @@ fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command> + Send>> {
             {
                 *counter = counter.wrapping_add(1);
             }
-            next.after = opt.gga_period;
+            next.after = opt.nmea_period;
             Some(next)
         });
         Ok(Box::new(it))
     } else {
         let first = build_gga(&opt);
         let rest = iter::repeat(Command {
-            after: opt.gga_period,
+            after: opt.nmea_period,
             ..first
         });
         Ok(Box::new(iter::once(first).chain(rest)))
@@ -279,7 +284,7 @@ fn main() -> Result<()> {
     headers.append("Ntrip-Version: Ntrip/2.0")?;
     headers.append(&format!("X-SwiftNav-Client-Id: {}", opt.client_id))?;
 
-    if opt.gga_header {
+    if opt.nmea_header {
         if opt.area_id.is_some() {
             headers.append(&format!("Ntrip-CRA: {}", build_cra(&opt)))?;
         } else {
