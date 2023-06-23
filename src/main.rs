@@ -10,6 +10,7 @@ use std::time::{Duration, SystemTime};
 use chrono::{DateTime, Utc};
 use clap::{ArgGroup, Parser};
 use curl::easy::{Easy, HttpVersion, List, ReadError};
+use flume::TryRecvError;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -339,8 +340,10 @@ fn main() -> Result<()> {
     })?;
 
     transfer.borrow_mut().read_function(|mut data: &mut [u8]| {
-        let Ok(mut bytes) = rx.try_recv() else {
-            return Err(ReadError::Pause);
+        let mut bytes = match rx.try_recv() {
+            Ok(bytes) => bytes,
+            Err(TryRecvError::Empty) => return Err(ReadError::Pause),
+            Err(TryRecvError::Disconnected) => return Err(ReadError::Abort),
         };
         bytes.extend_from_slice(b"\r\n");
         if let Err(e) = data.write_all(&bytes) {
