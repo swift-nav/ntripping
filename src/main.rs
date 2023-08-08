@@ -275,7 +275,7 @@ fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command> + Send>> {
     }
 }
 
-fn main() -> Result<()> {
+fn run() -> Result<()> {
     let opt = Cli::parse();
 
     let mut curl = Easy::new();
@@ -373,5 +373,11 @@ fn main() -> Result<()> {
     } else {
         // an error stopped the thread early
         handle.join().unwrap()
+    }
+}
+
+fn main() {
+    if let Err(e) = run() {
+        eprintln!("Error: {e}");
     }
 }
