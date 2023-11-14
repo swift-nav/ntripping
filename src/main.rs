@@ -39,15 +39,15 @@ struct Cli {
 
     /// Receiver latitude to report, in degrees
     #[arg(long, default_value_t = 37.77101999622968, allow_hyphen_values = true)]
-    lat: f64,
+    lat: f32,
 
     /// Receiver longitude to report, in degrees
     #[arg(long, default_value_t = -122.40315159140708, allow_hyphen_values = true)]
-    lon: f64,
+    lon: f32,
 
     /// Receiver height to report, in meters
     #[arg(long, default_value_t = -5.549358852471994, allow_hyphen_values = true)]
-    height: f64,
+    height: f32,
 
     /// Client ID
     #[arg(
@@ -149,9 +149,9 @@ fn checksum(buf: &[u8]) -> u8 {
 #[serde(rename_all = "lowercase")]
 enum Message {
     Gga {
-        lat: f64,
-        lon: f64,
-        height: f64,
+        lat: f32,
+        lon: f32,
+        height: f32,
     },
     Cra {
         request_counter: Option<u8>,
@@ -173,8 +173,8 @@ impl Message {
                 let lat_deg = latn as u16;
                 let lon_deg = lonn as u16;
 
-                let lat_min = (latn - (lat_deg as f64)) * 60.0;
-                let lon_min = (lonn - (lon_deg as f64)) * 60.0;
+                let lat_min = (latn - (lat_deg as f32)) * 60.0;
+                let lon_min = (lonn - (lon_deg as f32)) * 60.0;
 
                 let lat_dir = if lat < 0.0 { 'S' } else { 'N' };
                 let lon_dir = if lon < 0.0 { 'W' } else { 'E' };
