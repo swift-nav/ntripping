@@ -93,6 +93,10 @@ struct Cli {
     #[arg(long)]
     area_id: Option<u32>,
 
+    /// Convert the given position into an Area ID and use that to send CRA messages instead of typical GGA messages
+    #[arg(long, default_value_t = false)]
+    pos_to_area_id: bool,
+
     /// Field specifying which types of corrections are to be received
     #[arg(long)]
     corrections_mask: Option<u16>,
@@ -219,7 +223,11 @@ fn build_cra(opt: &Cli) -> Command {
         crc: None,
         message: Message::Cra {
             request_counter: opt.request_counter,
-            area_id: opt.area_id,
+            area_id: if opt.pos_to_area_id {
+                Some(area_id(opt.lat, opt.lon))
+            } else {
+                opt.area_id
+            },
             corrections_mask: opt.corrections_mask,
             solution_id: opt.solution_id,
         },
@@ -239,6 +247,42 @@ fn build_gga(opt: &Cli) -> Command {
     }
 }
 
+struct AreaIDParams {
+    a: f32,
+    b: f32,
+    offset: i32,
+}
+
+fn get_area_id_parameters(lat: f32) -> AreaIDParams {
+    if lat > 60.0 && lat <= 75.0 {
+        AreaIDParams {
+            a: 0.04,
+            b: 0.02,
+            offset: 0
+        }
+    } else if lat > -60.0 && lat <= 60.0 {
+        AreaIDParams {
+            a: 0.02,
+            b: 0.02,
+            offset: -6750000,
+        }
+    } else if lat > -75.0 && lat <= -60.0 {
+        AreaIDParams {
+            a: 0.04,
+            b: 0.02,
+            offset: 54000000,
+        }
+    } else {
+        unimplemented!("Invalid latitude {lat}")
+    }
+}
+
+fn area_id(lat: f32, lon: f32) -> u32 {
+    let params = get_area_id_parameters(lat);
+
+    ((360.0 / params.a) * (75.0 - lat) / params.b) as u32 + ((lon + 180.0) / params.a) as u32 + params.offset as u32
+}
+
 fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command> + Send>> {
     if let Some(path) = opt.input {
         let file = std::fs::File::open(path)?;
@@ -250,7 +294,7 @@ fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command> + Send>> {
         return Ok(Box::new(iter::empty()));
     }
 
-    if opt.area_id.is_some() {
+    if opt.area_id.is_some() || opt.pos_to_area_id {
         let first = build_cra(&opt);
         let it = iter::successors(Some(first), move |prev| {
             let mut next = *prev;
