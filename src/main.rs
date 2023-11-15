@@ -250,7 +250,7 @@ fn build_gga(opt: &Cli) -> Command {
 struct AreaIDParams {
     a: f32,
     b: f32,
-    offset: i32,
+    offset: f32,
 }
 
 fn get_area_id_parameters(lat: f32) -> AreaIDParams {
@@ -258,19 +258,19 @@ fn get_area_id_parameters(lat: f32) -> AreaIDParams {
         AreaIDParams {
             a: 0.04,
             b: 0.02,
-            offset: 0,
+            offset: 0.,
         }
     } else if lat > -60.0 && lat <= 60.0 {
         AreaIDParams {
             a: 0.02,
             b: 0.02,
-            offset: -6750000,
+            offset: -6_750_000.,
         }
     } else if lat > -75.0 && lat <= -60.0 {
         AreaIDParams {
             a: 0.04,
             b: 0.02,
-            offset: 54000000,
+            offset: 54_000_000.,
         }
     } else {
         unimplemented!("Invalid latitude {lat}")
@@ -280,9 +280,9 @@ fn get_area_id_parameters(lat: f32) -> AreaIDParams {
 fn area_id(lat: f32, lon: f32) -> u32 {
     let params = get_area_id_parameters(lat);
 
-    ((360.0 / params.a) * (75.0 - lat) / params.b) as u32
-        + ((lon + 180.0) / params.a) as u32
-        + params.offset as u32
+    (((360.0 / params.a) * (75.0 - lat) / params.b).trunc()
+        + ((lon + 180.0) / params.a).trunc()
+        + params.offset) as u32
 }
 
 fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command> + Send>> {
