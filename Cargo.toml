@@ -6,6 +6,7 @@ edition = "2018"
 publish = true
 
 [dependencies]
+anyhow = "1.0.75"
 chrono = "0.4"
 clap = { version = "4", features = ["derive"] }
 curl = "^0.4.44"

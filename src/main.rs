@@ -7,6 +7,7 @@ use std::rc::Rc;
 use std::thread;
 use std::time::{Duration, SystemTime};
 
+use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use clap::{ArgGroup, Parser};
 use curl::easy::{Easy, HttpVersion, List, ReadError};
@@ -323,6 +324,14 @@ fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command> + Send>> {
 
 fn run() -> Result<()> {
     let opt = Cli::parse();
+
+    if opt.lat < -90.0 || opt.lat > 90.0 {
+        return Err(anyhow!("Invalid latitude of {}", opt.lat).into());
+    }
+
+    if opt.lon < -180.0 || opt.lon > 180.0 {
+        return Err(anyhow!("Invalid longitude of {}", opt.lon).into());
+    }
 
     let mut curl = Easy::new();
 
