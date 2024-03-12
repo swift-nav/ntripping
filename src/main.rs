@@ -57,11 +57,11 @@ struct Cli {
     )]
     client_id: String,
 
-    // Enable verbose curl output
+    /// Enable verbose curl output
     #[arg(short, long)]
     verbose: bool,
 
-    // Enable curl debug output
+    /// Enable curl debug output
     #[arg(short, long)]
     debug: bool,
 
@@ -110,6 +110,7 @@ struct Cli {
     #[arg(long)]
     input: Option<PathBuf>,
 
+    /// Request that no ephemeris is sent on connection
     #[arg(long)]
     no_eph: bool,
 }
