@@ -57,8 +57,13 @@ struct Cli {
     )]
     client_id: String,
 
+    // Enable verbose curl output
     #[arg(short, long)]
     verbose: bool,
+
+    // Enable curl debug output
+    #[arg(short, long)]
+    debug: bool,
 
     /// Receiver time to report, as a Unix time
     #[arg(long)]
@@ -302,8 +307,16 @@ fn run() -> Result<()> {
     curl.http_version(HttpVersion::Any)?;
     curl.http_09_allowed(true)?;
 
-    if opt.verbose {
+    if opt.verbose || opt.debug {
         curl.verbose(true)?;
+    }
+
+    if opt.debug {
+        curl.debug_function(|info, data| {
+            eprintln!("\n-----\nDEBUG - infotype = {:?}\n-----",info);
+            let _ = io::stderr().write_all(data);
+            eprintln!("-----");
+        })?;
     }
 
     if let Some(username) = &opt.username {
