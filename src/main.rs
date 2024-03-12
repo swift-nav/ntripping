@@ -109,6 +109,9 @@ struct Cli {
     /// Path to a YAML file containing a list of messages to send to the caster
     #[arg(long)]
     input: Option<PathBuf>,
+
+    #[arg(long)]
+    no_eph: bool
 }
 
 #[derive(Debug, Clone, Copy, serde::Deserialize)]
@@ -296,6 +299,10 @@ fn run() -> Result<()> {
         } else {
             headers.append(&format!("Ntrip-GGA: {}", build_gga(&opt)))?;
         }
+    }
+
+    if opt.no_eph {
+        headers.append("X-No-Ephemerides-On-Connection: True")?;
     }
 
     curl.http_headers(headers)?;
