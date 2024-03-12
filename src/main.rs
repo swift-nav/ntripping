@@ -111,7 +111,7 @@ struct Cli {
     input: Option<PathBuf>,
 
     #[arg(long)]
-    no_eph: bool
+    no_eph: bool,
 }
 
 #[derive(Debug, Clone, Copy, serde::Deserialize)]
@@ -320,7 +320,7 @@ fn run() -> Result<()> {
 
     if opt.debug {
         curl.debug_function(|info, data| {
-            eprintln!("\n-----\nDEBUG - infotype = {:?}\n-----",info);
+            eprintln!("\n-----\nDEBUG - infotype = {:?}\n-----", info);
             let _ = io::stderr().write_all(data);
             eprintln!("-----");
         })?;
