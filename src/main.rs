@@ -57,8 +57,13 @@ struct Cli {
     )]
     client_id: String,
 
+    /// Enable verbose curl output
     #[arg(short, long)]
     verbose: bool,
+
+    /// Enable curl debug output. This implicitly enables verbose output
+    #[arg(short, long)]
+    debug: bool,
 
     /// Receiver time to report, as a Unix time
     #[arg(long)]
@@ -104,6 +109,10 @@ struct Cli {
     /// Path to a YAML file containing a list of messages to send to the caster
     #[arg(long)]
     input: Option<PathBuf>,
+
+    /// Request that no ephemeris is sent on connection
+    #[arg(long)]
+    no_eph: bool,
 }
 
 #[derive(Debug, Clone, Copy, serde::Deserialize)]
@@ -293,6 +302,10 @@ fn run() -> Result<()> {
         }
     }
 
+    if opt.no_eph {
+        headers.append("X-No-Ephemerides-On-Connection: True")?;
+    }
+
     curl.http_headers(headers)?;
     curl.useragent("NTRIP ntrip-client/1.0")?;
     curl.url(&opt.url)?;
@@ -302,8 +315,16 @@ fn run() -> Result<()> {
     curl.http_version(HttpVersion::Any)?;
     curl.http_09_allowed(true)?;
 
-    if opt.verbose {
+    if opt.verbose || opt.debug {
         curl.verbose(true)?;
+    }
+
+    if opt.debug {
+        curl.debug_function(|info, data| {
+            eprintln!("\n-----\nDEBUG - infotype = {:?}\n-----", info);
+            let _ = io::stderr().write_all(data);
+            eprintln!("-----");
+        })?;
     }
 
     if let Some(username) = &opt.username {
