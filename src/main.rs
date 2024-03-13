@@ -61,7 +61,7 @@ struct Cli {
     #[arg(short, long)]
     verbose: bool,
 
-    /// Enable curl debug output
+    /// Enable curl debug output. This implicitly enables verbose output
     #[arg(short, long)]
     debug: bool,
 
