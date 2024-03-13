@@ -113,6 +113,14 @@ struct Cli {
     /// Request that no ephemeris is sent on connection
     #[arg(long)]
     no_eph: bool,
+
+    /// Client certificate file for mTLS
+    #[arg(long, requires = "key")]
+    cert: Option<PathBuf>,
+
+    /// Private key file for mTLS
+    #[arg(long, requires = "cert")]
+    key: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, Copy, serde::Deserialize)]
@@ -314,6 +322,11 @@ fn run() -> Result<()> {
     curl.custom_request("GET")?;
     curl.http_version(HttpVersion::Any)?;
     curl.http_09_allowed(true)?;
+
+    if let (Some(cert), Some(key)) = (&opt.cert, &opt.key) {
+        curl.ssl_cert(cert)?;
+        curl.ssl_key(key)?;
+    }
 
     if opt.verbose || opt.debug {
         curl.verbose(true)?;
