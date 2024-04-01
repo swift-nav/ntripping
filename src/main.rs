@@ -7,6 +7,7 @@ use std::rc::Rc;
 use std::thread;
 use std::time::{Duration, SystemTime};
 
+use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use clap::{ArgGroup, Parser};
 use curl::easy::{Easy, HttpVersion, List, ReadError};
@@ -39,15 +40,15 @@ struct Cli {
 
     /// Receiver latitude to report, in degrees
     #[arg(long, default_value_t = 37.77101999622968, allow_hyphen_values = true)]
-    lat: f64,
+    lat: f32,
 
     /// Receiver longitude to report, in degrees
     #[arg(long, default_value_t = -122.40315159140708, allow_hyphen_values = true)]
-    lon: f64,
+    lon: f32,
 
     /// Receiver height to report, in meters
     #[arg(long, default_value_t = -5.549358852471994, allow_hyphen_values = true)]
-    height: f64,
+    height: f32,
 
     /// Client ID
     #[arg(
@@ -96,7 +97,11 @@ struct Cli {
 
     /// Area ID to be used in generation of CRA message. If this flag is set, ntripping outputs messages of type CRA rather than the default GGA
     #[arg(long)]
-    area_id: Option<u32>,
+    area_id: Option<i32>,
+
+    /// Convert the given position into an Area ID and use that to send CRA messages instead of typical GGA messages
+    #[arg(long, default_value_t = false)]
+    pos_to_area_id: bool,
 
     /// Field specifying which types of corrections are to be received
     #[arg(long)]
@@ -166,13 +171,13 @@ fn checksum(buf: &[u8]) -> u8 {
 #[serde(rename_all = "lowercase")]
 enum Message {
     Gga {
-        lat: f64,
-        lon: f64,
-        height: f64,
+        lat: f32,
+        lon: f32,
+        height: f32,
     },
     Cra {
         request_counter: Option<u8>,
-        area_id: Option<u32>,
+        area_id: Option<i32>,
         corrections_mask: Option<u16>,
         solution_id: Option<u8>,
     },
@@ -190,8 +195,8 @@ impl Message {
                 let lat_deg = latn as u16;
                 let lon_deg = lonn as u16;
 
-                let lat_min = (latn - (lat_deg as f64)) * 60.0;
-                let lon_min = (lonn - (lon_deg as f64)) * 60.0;
+                let lat_min = (latn - (lat_deg as f32)) * 60.0;
+                let lon_min = (lonn - (lon_deg as f32)) * 60.0;
 
                 let lat_dir = if lat < 0.0 { 'S' } else { 'N' };
                 let lon_dir = if lon < 0.0 { 'W' } else { 'E' };
@@ -236,7 +241,11 @@ fn build_cra(opt: &Cli) -> Command {
         crc: None,
         message: Message::Cra {
             request_counter: opt.request_counter,
-            area_id: opt.area_id,
+            area_id: if opt.pos_to_area_id {
+                Some(area_id(opt.lat, opt.lon))
+            } else {
+                opt.area_id
+            },
             corrections_mask: opt.corrections_mask,
             solution_id: opt.solution_id,
         },
@@ -256,6 +265,60 @@ fn build_gga(opt: &Cli) -> Command {
     }
 }
 
+struct AreaIDParams {
+    a: f32,
+    b: f32,
+    offset: i32,
+}
+
+fn get_area_id_parameters(lat: f32) -> AreaIDParams {
+    if lat > 60.0 && lat <= 75.0 {
+        AreaIDParams {
+            a: 0.04,
+            b: 0.02,
+            offset: 0,
+        }
+    } else if lat > -60.0 && lat <= 60.0 {
+        AreaIDParams {
+            a: 0.02,
+            b: 0.02,
+            offset: -6_750_000,
+        }
+    } else if lat > -75.0 && lat <= -60.0 {
+        AreaIDParams {
+            a: 0.04,
+            b: 0.02,
+            offset: 54_000_000,
+        }
+    } else {
+        unimplemented!("Invalid latitude {lat}")
+    }
+}
+
+fn area_id(lat: f32, lon: f32) -> i32 {
+    let cast_to_i32 = |x: f32| -> i32 {
+        let x = x.trunc();
+        assert!(
+            x >= i32::MIN as f32,
+            "tried to cast float `{}` to an i32",
+            x
+        );
+        assert!(
+            x <= i32::MAX as f32,
+            "tried to cast float `{}` to an i32",
+            x
+        );
+        assert!(!x.is_nan(), "tried to cast NaN to a i32");
+        x as i32
+    };
+
+    let params = get_area_id_parameters(lat);
+
+    cast_to_i32((360.0 / params.a) * (75.0 - lat) / params.b)
+        + cast_to_i32((lon + 180.0) / params.a)
+        + params.offset
+}
+
 fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command> + Send>> {
     if let Some(path) = opt.input {
         let file = std::fs::File::open(path)?;
@@ -267,7 +330,7 @@ fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command> + Send>> {
         return Ok(Box::new(iter::empty()));
     }
 
-    if opt.area_id.is_some() {
+    if opt.area_id.is_some() || opt.pos_to_area_id {
         let first = build_cra(&opt);
         let it = iter::successors(Some(first), move |prev| {
             let mut next = *prev;
@@ -294,6 +357,14 @@ fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command> + Send>> {
 
 fn run() -> Result<()> {
     let opt = Cli::parse();
+
+    if opt.lat < -90.0 || opt.lat > 90.0 {
+        return Err(anyhow!("Invalid latitude of {}", opt.lat).into());
+    }
+
+    if opt.lon < -180.0 || opt.lon > 180.0 {
+        return Err(anyhow!("Invalid longitude of {}", opt.lon).into());
+    }
 
     let mut curl = Easy::new();
 
