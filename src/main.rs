@@ -279,11 +279,19 @@ fn get_area_id_parameters(lat: f32) -> AreaIDParams {
 }
 
 fn area_id(lat: f32, lon: f32) -> u32 {
+    let cast_to_u32 = |x: f32| -> u32 {
+        let x = x.trunc();
+        assert!(x >= 0.0, "tried to cast a negative float `{x}` to an u32");
+        assert!(x <= std::u32::MAX as f32, "tried to cast float `{x}` to an u32");
+        assert!(!x.is_nan(), "tried to cast NaN to a u32");
+        x as u32
+    };
+    
     let params = get_area_id_parameters(lat);
-
-    (((360.0 / params.a) * (75.0 - lat) / params.b).trunc()
-        + ((lon + 180.0) / params.a).trunc()
-        + params.offset) as u32
+    
+    cast_to_u32((360.0 / params.a) * (75.0 - lat) / params.b))
+        + cast_to_u32((lon + 180.0) / params.a))
+        + cast_to_u32(params.offset)
 }
 
 fn get_commands(opt: Cli) -> Result<Box<dyn Iterator<Item = Command> + Send>> {
