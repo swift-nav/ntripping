@@ -24,10 +24,10 @@ jobs:
           - os: windows-2019
             binary_target: x86_64-pc-windows-msvc
             profile: release+windows
-          - os: macos-11
+          - os: macos-latest
             binary_target: x86_64-apple-darwin
             profile: release+mac_intel
-          - os: macos-11
+          - os: macos-latest
             binary_target: aarch64-apple-darwin
             profile: release+mac_arm
 
