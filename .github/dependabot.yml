@@ -9,9 +9,6 @@ updates:
   reviewers:
     - "jbangelo"
   ignore:
-  # Ignore patch updates for all
-  - dependency-name: "*"
-    update-types: ["version-update:semver-patch"]
   # Keep vergen at our pinned version
   - dependency-name: vergen
     versions:
@@ -23,3 +20,6 @@ updates:
   - dependency-name: curl
     versions:
     - 0.4.36
+  # Ignore patch updates for all
+  - dependency-name: "*"
+    update-types: ["version-update:semver-patch"]
