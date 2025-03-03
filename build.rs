@@ -12,7 +12,6 @@ fn main() {
         .build()
         .expect("Unable to build. Please ensure git is installed");
 
-    // Use tags=true to have vergen run git describe --tags to include lightweight git tags.
     Emitter::default()
         .add_instructions(&gitcl)
         .expect("Unable to add git instructions")
