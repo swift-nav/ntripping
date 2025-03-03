@@ -6,7 +6,12 @@ updates:
     interval: daily
     time: "13:00"
   open-pull-requests-limit: 10
+  reviewers:
+    - "swift-nav/open-source"
   ignore:
   - dependency-name: curl
     versions:
     - 0.4.36
+  # Ignore patch updates for all
+  - dependency-name: "*"
+    update-types: ["version-update:semver-patch"]
