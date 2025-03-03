@@ -19,7 +19,7 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>
 #[command(
     name = "ntripping",
     about = "NTRIP command line client",
-    version = env!("VERGEN_SEMVER_LIGHTWEIGHT"),
+    version = env!("VERGEN_GIT_DESCRIBE"),
     group(
         ArgGroup::new("gga")
             .conflicts_with_all(["input", "cra"])
