@@ -6,13 +6,20 @@ updates:
     interval: daily
     time: "13:00"
   open-pull-requests-limit: 10
+  reviewers:
+    - "jbangelo"
   ignore:
+  # Ignore patch updates for all
+  - dependency-name: "*"
+    update-types: ["version-update:semver-patch"]
+  # Keep vergen at our pinned version
   - dependency-name: vergen
     versions:
     - "> 3.2.0"
   - dependency-name: vergen
     versions:
     - ">= 4.a, < 5"
+  # Skip over this version of curl
   - dependency-name: curl
     versions:
     - 0.4.36
