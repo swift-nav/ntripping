@@ -13,15 +13,15 @@ jobs:
 
       matrix:
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             binary_target: x86_64-unknown-linux-musl
             profile: release+static+x86_64
             needs_musl: true
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             binary_target: aarch64-unknown-linux-musl
             profile: release+static+aarch64
             needs_musl: true
-          - os: windows-2019
+          - os: windows-latest
             binary_target: x86_64-pc-windows-msvc
             profile: release+windows
           - os: macos-latest
@@ -46,14 +46,12 @@ jobs:
         qemu-user
 
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v6
 
-    - name: Install rust for target ${{ matrix.binary_target }}
-      uses: actions-rs/toolchain@v1
+    - uses: dtolnay/rust-toolchain@stable
       with:
         toolchain: stable
-        target: ${{ matrix.binary_target }}
-        profile: minimal
+        targets: ${{ matrix.binary_target }}
 
     - uses: davidB/rust-cargo-make@v1
 
@@ -80,7 +78,7 @@ jobs:
   
   post-build:
     name: Post Build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     needs: [ build ]
     steps:
       - name: Get tag
