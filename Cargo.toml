@@ -15,4 +15,4 @@ serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
 
 [build-dependencies]
-vergen-gitcl = "10.0.1"
+vergen-gitcl = { version = "10.0.1", features = ["build"] }
