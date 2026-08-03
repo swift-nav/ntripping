@@ -68,7 +68,7 @@ jobs:
           --env CARGO_MAKE_PROJECT_VERSION=${{ steps.get_tag.outputs.tag }} \
           zip-release-ci-flow
     - name: Upload Binaries
-      uses: svenstaro/upload-release-action@v1-release
+      uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         file: '*.zip'
