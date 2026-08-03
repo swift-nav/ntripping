@@ -15,3 +15,8 @@ updates:
   # Ignore patch updates for all
   - dependency-name: "*"
     update-types: ["version-update:semver-patch"]
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "13:00"
