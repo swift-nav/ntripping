@@ -1,16 +1,15 @@
 //! makes the git tag info available at build time
-use vergen_gitcl::{Emitter, GitclBuilder};
+use vergen_gitcl::{Emitter, Gitcl};
 
 fn main() {
     // Make vergen `git describe` to populate some env vars at build time
-    let gitcl = GitclBuilder::default()
+    let gitcl = Gitcl::builder()
         .describe(
             true, // --dirty
             true, // --tags [to allow lightweight tags]
             None, // no glob matches passed in
         )
-        .build()
-        .expect("Unable to build. Please ensure git is installed");
+        .build();
 
     Emitter::default()
         .add_instructions(&gitcl)
