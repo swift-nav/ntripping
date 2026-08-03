@@ -86,7 +86,7 @@ jobs:
         shell: bash
         run: echo ::set-output name=tag::${GITHUB_REF##refs/tags/}
       - name: Hook into package registry
-        uses: swift-nav/swift-cli-publisher@v2
+        uses: swift-nav/swift-cli-publisher@v3
         env:
           DL_LINUX_x86_64: "ntripping-${{ steps.get_tag.outputs.tag }}-x86_64-unknown-linux-musl.zip"
           DL_LINUX_aarch64: "ntripping-${{ steps.get_tag.outputs.tag }}-aarch64-unknown-linux-musl.zip"
