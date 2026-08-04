@@ -53,7 +53,7 @@ jobs:
         toolchain: stable
         targets: ${{ matrix.binary_target }}
 
-    - uses: davidB/rust-cargo-make@v1
+    - uses: davidB/rust-cargo-make@v1.16.0
 
     - name: Get tag
       id: get_tag
